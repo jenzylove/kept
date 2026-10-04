@@ -1,0 +1,27 @@
+# secrets and keys
+.env
+.env.*
+!.env.example
+*.keypair.json
+id.json
+**/keys/
+*.jks
+*.keystore
+local.properties
+# build output
+node_modules/
+target/
+.anchor/
+test-ledger/
+build/
+.gradle/
+app/build/
+*.apk
+*.aab
+.next/
+.vercel/
+dist/
+# os/editor
+.DS_Store
+.idea/
+*.iml
