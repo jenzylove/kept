@@ -50,7 +50,7 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 | 3.9 | In-app swap (Jupiter) | buy + sell tx links from the app | [ ] |
 | 3.10 | Vault screen: balance, bank history, withdraw request, countdown, cancel | on the emulator, devnet: vault 0.0165 SOL after the bank; request 0.005 SOL, countdown (`app-8-pending.png`), unlock, take out (vault 0.0115, `app-10-withdrawn.png`); a second request cancelled in the app | [x] |
 | 3.11 | SKR tier: live SKR balance check, rules unlocked; bank into staked SKR | stake tx where user = vault PDA | [ ] |
-| 3.12 | Monthly card (share image) | image file | [ ] |
+| 3.12 | Monthly card (share image) | drawn in the app from the real vault and trading history, opened through the share sheet; `docs/assets/kept-card.png` (0.070 SOL won, 0.035 SOL kept, 2 wins, devnet) | [x] |
 
 ## Phase 4. Web (Oct 6 to 7)
 

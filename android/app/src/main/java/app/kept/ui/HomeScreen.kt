@@ -54,6 +54,7 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
     val v = s.vault
     val home by vm.homeMirror.collectAsState()
     var withdrawOpen by rememberSaveable { mutableStateOf(false) }
+    var fundOpen by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 28.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -93,6 +94,17 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
             }
         }
 
+        if (v != null && v.bankCount > 0) {
+            Spacer(Modifier.height(14.dp))
+            val r = home
+            TextButton(onClick = {
+                val series = r?.let { Engine.series(it.mirror, v.bankBps) }
+                ShareCard.share(ctx, r?.mirror?.won?.toLong() ?: 0L, v.totalBanked, v.bankCount.toInt(), series?.wallet ?: emptyList(), series?.kept ?: emptyList())
+            }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                Text("Share what I kept", color = c.brass, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+
         Spacer(Modifier.height(26.dp))
         if (v != null && v.hasPendingWithdraw) PendingWithdraw(vm, s, v) else {
             KeptGhostButton("Take money out", { withdrawOpen = true }, enabled = s.vaultLamports > 0 && s.busy == null)
@@ -113,6 +125,10 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         Spacer(Modifier.height(4.dp))
         StatRow("Balance", "${fmtSol(s.tradingLamports)} SOL")
         s.tradingWallet?.let { StatRow("Address (tap to copy)", short(it, 5), onClick = { copyToClipboard(ctx, "Trading wallet", it) }) }
+        Spacer(Modifier.height(10.dp))
+        TextButton(onClick = { fundOpen = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+            Text("Add SOL from my wallet", color = c.brass, style = MaterialTheme.typography.labelLarge)
+        }
         if (v != null) {
             StatRow("Banks ${v.bankBps / 100}% of each win", "wait ${fmtDuration(v.cooldownSecs)}")
             if (v.pendingCooldownAt > 0) StatRow("Wait shortens to ${fmtDuration(v.pendingCooldownSecs)} in", fmtCountdown(v.pendingCooldownAt - s.nowSec))
@@ -130,6 +146,8 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         s.log.take(30).forEach { Receipt(it, s.nowSec) }
         Spacer(Modifier.height(40.dp))
     }
+
+    if (fundOpen) FundDialog(onDismiss = { fundOpen = false }) { lamports -> fundOpen = false; vm.fundTrading(lamports) }
 
     if (withdrawOpen && v != null) WithdrawDialog(s, onDismiss = { withdrawOpen = false }) { lamports, toTrading ->
         withdrawOpen = false
@@ -243,4 +261,29 @@ private fun SkrSection(vm: AppViewModel, s: AppState, v: VaultProgram.VaultState
         skr.shares > 0 && !v.hasPendingWithdraw -> KeptGhostButton("Unstake my SKR", { vm.requestSkrUnstake() }, enabled = s.busy == null)
         skrPending -> Text("Your unstake request is in the panel above.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
     }
+}
+
+@Composable
+private fun FundDialog(onDismiss: () -> Unit, onSend: (Long) -> Unit) {
+    val c = Kept.colors
+    var amount by remember { mutableStateOf("0.1") }
+    val lamports = ((amount.toDoubleOrNull() ?: 0.0) * 1e9).toLong()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = c.raised,
+        title = { Text("Add SOL to your trading wallet", color = c.bone) },
+        text = {
+            Column {
+                Text("This sends SOL from the wallet that owns your vault. Your wallet app will ask you to confirm.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+                Spacer(Modifier.height(14.dp))
+                OutlinedTextField(
+                    value = amount, onValueChange = { amount = it }, singleLine = true, label = { Text("Amount in SOL") },
+                    shape = RoundedCornerShape(4.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = c.brass, unfocusedBorderColor = c.line, focusedLabelColor = c.brass, cursorColor = c.brass),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSend(lamports) }, enabled = lamports > 0) { Text("Send", color = c.brass) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Not now", color = c.dim) } },
+    )
 }
