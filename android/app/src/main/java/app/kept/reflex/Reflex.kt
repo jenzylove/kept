@@ -26,8 +26,10 @@ class RpcChain(private val rpc: Rpc) : Chain {
     override suspend fun confirm(signature: String) = rpc.confirm(signature)
 }
 
+enum class BankAsset { Sol, StakedSkr }
+
 /** What the reflex needs to know about the vault it banks into. */
-data class Rules(val vaultOwner: PublicKey, val bankBps: Int)
+data class Rules(val vaultOwner: PublicKey, val bankBps: Int, val asset: BankAsset = BankAsset.Sol)
 
 /**
  * The reflex: watches the trading wallet's history in order, keeps cost basis, and when a sell
@@ -47,6 +49,10 @@ class Reflex(
     private val clock: () -> Long = { System.currentTimeMillis() / 1000 },
     private val onBank: (BankEntry) -> Unit = {},
     private val minBank: Long = MIN_BANK_LAMPORTS,
+    /** Banks into staked SKR when the rules ask for it. Null means SOL only. */
+    private val skrBank: SkrBank? = null,
+    /** True while the owner still holds enough SKR to use SKR banking; checked at bank time. */
+    private val skrTier: suspend () -> Boolean = { true },
 ) {
     private val lock = Mutex()
     private var state = store.load()
@@ -107,15 +113,28 @@ class Reflex(
         val now = clock()
         val late = sellTime != null && now - sellTime > LATE_AFTER_SECS
         val amount = Engine.bankAmount(java.math.BigInteger.valueOf(profit), rules()?.bankBps ?: 0).toLong()
-        fun record(status: BankEntry.Status, sig: String? = null, reason: String? = null) =
-            BankEntry(sellSignature, mint, profit, amount, sig, status, reason, sellTime, now, late).also {
-                state = state.withLog(it)
-                store.save(state)
-                onBank(it)
-            }
+        fun record(
+            status: BankEntry.Status, sig: String? = null, reason: String? = null,
+            extra: (BankEntry) -> BankEntry = { it },
+        ) = extra(BankEntry(sellSignature, mint, profit, amount, sig, status, reason, sellTime, now, late)).also {
+            state = state.withLog(it)
+            store.save(state)
+            onBank(it)
+        }
 
         val r = rules() ?: return record(BankEntry.Status.NoVault, reason = "No vault yet")
         if (amount < minBank) return record(BankEntry.Status.TooSmall, reason = "Share is under $minBank lamports, not worth the fee")
+        if (r.asset == BankAsset.StakedSkr && skrBank != null && runCatching { skrTier() }.getOrDefault(false)) {
+            return try {
+                val out = skrBank.bank(amount, r.vaultOwner)
+                record(BankEntry.Status.Confirmed, out.swapSignature) {
+                    it.copy(asset = "SKR", stakeSignature = out.stakeSignature, stakedSkrRaw = out.stakedRaw, waitingSkrRaw = out.waitingRaw)
+                }
+            } catch (e: Exception) {
+                // The win is still in the trading wallet; it can be retried. Never silently fall back to SOL.
+                record(BankEntry.Status.Failed, reason = "SKR bank: ${e.message ?: e::class.simpleName}") { it.copy(asset = "SKR") }
+            }
+        }
         return try {
             val hash = chain.latestBlockhash()
             val tx = VaultProgram.signedBase64(

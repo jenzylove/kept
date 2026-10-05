@@ -22,6 +22,12 @@ data class BankEntry(
     val sellTime: Long? = null,
     val bankedAt: Long,
     val late: Boolean = false,
+    /** "SOL" banks into the vault as SOL. "SKR" swapped the share into SKR and staked it in the vault's name. */
+    val asset: String = "SOL",
+    val stakeSignature: String? = null,
+    val stakedSkrRaw: Long = 0,
+    /** SKR bought but under the 1 SKR minimum stake, waiting in the trading wallet for the next win. */
+    val waitingSkrRaw: Long = 0,
 ) {
     @Serializable
     enum class Status { Confirmed, Failed, TooSmall, NoVault }

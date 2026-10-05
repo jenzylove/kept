@@ -39,7 +39,7 @@ class MwaWallet(
                 PublicKey(key)
             }
             is TransactionResult.NoWalletFound -> throw NoWalletApp()
-            is TransactionResult.Failure -> throw WalletRejected(r.message)
+            is TransactionResult.Failure -> { android.util.Log.w("KeptMwa", "connect failed: ${r.message}", r.e); throw WalletRejected(r.message) }
         }
 
     override suspend fun signAndSend(unsigned: ByteArray): String =
@@ -49,6 +49,6 @@ class MwaWallet(
                 Base58.encode(r.payload.signatures.first())
             }
             is TransactionResult.NoWalletFound -> throw NoWalletApp()
-            is TransactionResult.Failure -> throw WalletRejected(r.message)
+            is TransactionResult.Failure -> { android.util.Log.w("KeptMwa", "signAndSend failed: ${r.message}", r.e); throw WalletRejected(r.message) }
         }
 }

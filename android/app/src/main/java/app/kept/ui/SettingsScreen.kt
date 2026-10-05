@@ -51,6 +51,17 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
             Spacer(Modifier.height(8.dp))
             Chips(listOf(2500 to "25%", 5000 to "50%", 7500 to "75%", 10000 to "100%"), bps, { it == 5000 || tier }) { bps = it }
             Spacer(Modifier.height(20.dp))
+            Label("Bank wins as")
+            Spacer(Modifier.height(8.dp))
+            Chips(listOf("sol" to "SOL", "skr" to "Staked SKR"), s.bankAsset, { it == "sol" || tier }) { vm.setBankAsset(it) }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (s.bankAsset == "skr") "Each win's share is swapped to SKR and staked in your vault's name. It earns while it waits, and only your vault's wait can release it."
+                else if (tier) "Choose Staked SKR to have each win's share swapped to SKR and staked for you."
+                else "Hold ${SKR_TIER_RAW / 1_000_000} SKR to bank into staked SKR.",
+                style = MaterialTheme.typography.labelSmall, color = c.dim,
+            )
+            Spacer(Modifier.height(20.dp))
             Label("Wait before money leaves")
             Spacer(Modifier.height(8.dp))
             Chips(

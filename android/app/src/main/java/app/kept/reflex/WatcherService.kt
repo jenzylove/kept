@@ -12,6 +12,8 @@ import androidx.core.app.ServiceCompat
 import app.kept.KeptApp
 import app.kept.MainActivity
 import app.kept.R
+import app.kept.chain.SkrStaking
+import app.kept.trade.Jupiter
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +68,11 @@ class WatcherService : Service() {
             store = app.reflexStore,
             rules = { app.prefs.rules() },
             onBank = { notifyBank(it) },
+            skrBank = JupiterSkrBank(Jupiter(), app.rpc, key, app.program),
+            skrTier = {
+                val main = app.prefs.mainWallet
+                main != null && app.rpc.tokenBalance(main, SkrStaking.MINT.toBase58()) >= app.skrTierRaw
+            },
         )
         reflex.activate()
         val nudge = Channel<Unit>(Channel.CONFLATED)
@@ -137,7 +144,9 @@ class WatcherService : Service() {
         val nm = getSystemService(android.app.NotificationManager::class.java)
         val sol = String.format(Locale.US, "%.4f", e.amountLamports / 1e9)
         val (title, text) = when (e.status) {
-            BankEntry.Status.Confirmed -> "Banked $sol SOL" to "Kept your share of a win on ${short(e.mint)}${if (e.late) " (found late)" else ""}."
+            BankEntry.Status.Confirmed -> if (e.asset == "SKR") {
+                "Staked SKR for $sol SOL" to (if (e.stakedSkrRaw > 0) "Your share of a win on ${short(e.mint)} is now staked SKR in your vault." else "Bought SKR with your share. It will be staked with your next win.")
+            } else "Banked $sol SOL" to "Kept your share of a win on ${short(e.mint)}${if (e.late) " (found late)" else ""}."
             BankEntry.Status.Failed -> "Bank didn't go through" to (e.reason ?: "We'll try again.")
             BankEntry.Status.NoVault -> "Win not banked" to "Open Kept and create your vault."
             BankEntry.Status.TooSmall -> return

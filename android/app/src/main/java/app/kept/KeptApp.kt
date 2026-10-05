@@ -29,6 +29,9 @@ class KeptApp : Application() {
         )
     }
 
+    /** SKR (base units) the owner must hold to unlock the custom share and SKR banking. One constant, shown in the app. */
+    val skrTierRaw: Long = 100_000_000L
+
     /** Websocket used only as a nudge that something happened; it carries no key. */
     val wsUrl: String get() = BuildConfig.WS_URL
 

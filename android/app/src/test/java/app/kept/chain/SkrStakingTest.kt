@@ -88,4 +88,32 @@ class SkrStakingTest {
         assertEquals(6, ix.keys.size)
         assertEquals(SkrStaking.ata(vault), ix.keys[1].publicKey)
     }
+
+    private val stakeConfig: ByteArray by lazy {
+        val dir = File(System.getProperty("kept.vectors")!!).parentFile.parentFile
+        val m = Json.parseToJsonElement(File(dir, "programs/kept_vault/tests/fixtures/skr-accounts.json").readText()).jsonObject
+        val a = m["accounts"]!!.jsonArray.map { it.jsonObject }.first { it["name"]!!.jsonPrimitive.content == "stake_config" }
+        java.util.Base64.getDecoder().decode(a["data"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun sharePriceAndValueMatchTheRealOnChainConfig() {
+        // Mainnet StakeConfig dumped on 2026-10-05; the simulator test staked 2 SKR for 1,740,507 shares.
+        assertEquals(java.math.BigInteger.valueOf(1_149_090_094L), SkrStaking.sharePrice(stakeConfig))
+        val value = SkrStaking.shareValue(1_740_507L, stakeConfig)
+        assertEquals("1,740,507 shares are worth 2 SKR, to within one base unit", 2_000_000L, value + (if (value < 2_000_000L) 1 else 0))
+        assertEquals(172_800L, SkrStaking.cooldownSecs(stakeConfig))
+    }
+
+    @Test
+    fun unstakingIsReadFromTheTailOfTheUserStake() {
+        val data = ByteArray(8 + 1 + 32 * 3 + 16 + 16 + 8 + 8 + 8)
+        val buf = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
+        buf.position(data.size - 16)
+        buf.putLong(1_999_999L)
+        buf.putLong(1_800_000_000L)
+        val u = SkrStaking.unstakingOf(data)
+        assertEquals(1_999_999L, u.amountRaw)
+        assertEquals(1_800_000_000L, u.startedAt)
+    }
 }

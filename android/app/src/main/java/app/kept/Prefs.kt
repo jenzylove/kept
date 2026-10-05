@@ -22,6 +22,11 @@ class Prefs(context: Context) {
         get() = p.getInt("bank_bps", 5000)
         set(v) = p.edit().putInt("bank_bps", v).apply()
 
+    /** "sol" or "skr": what a win is banked as. SKR needs the holder tier. */
+    var bankAsset: String
+        get() = p.getString("bank_asset", "sol") ?: "sol"
+        set(v) = p.edit().putString("bank_asset", v).apply()
+
     var cooldownSecs: Long
         get() = p.getLong("cooldown", 86_400L)
         set(v) = p.edit().putLong("cooldown", v).apply()
@@ -38,7 +43,7 @@ class Prefs(context: Context) {
     fun rules(): Rules? {
         val main = mainWallet ?: return null
         if (!vaultReady) return null
-        return Rules(PublicKey(main), bankBps)
+        return Rules(PublicKey(main), bankBps, if (bankAsset == "skr") app.kept.reflex.BankAsset.StakedSkr else app.kept.reflex.BankAsset.Sol)
     }
 
     fun clear() = p.edit().clear().apply()

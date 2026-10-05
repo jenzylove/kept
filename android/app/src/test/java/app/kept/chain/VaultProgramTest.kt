@@ -102,4 +102,31 @@ class VaultProgramTest {
         val message = bytes.copyOfRange(65, bytes.size)
         assertTrue(trader.publicKey.verify(sig, message))
     }
+
+    private fun idlInstruction(name: String) = Json.parseToJsonElement(File(System.getProperty("kept.idl")!!).readText())
+        .jsonObject["instructions"]!!.jsonArray.map { it.jsonObject }.first { it["name"]!!.jsonPrimitive.content == name }
+
+    private fun assertMatchesIdl(name: String, ix: org.sol4k.instruction.Instruction) {
+        val spec = idlInstruction(name)
+        assertArrayEquals("discriminator for $name", spec["discriminator"]!!.jsonArray.map { it.jsonPrimitive.content.toInt().toByte() }.toByteArray(), ix.data.copyOf(8))
+        val accounts = spec["accounts"]!!.jsonArray.map { it.jsonObject }
+        assertEquals("account count for $name", accounts.size, ix.keys.size)
+        accounts.forEachIndexed { i, a ->
+            val n = a["name"]!!.jsonPrimitive.content
+            assertEquals("$name.$n writable", a["writable"]?.jsonPrimitive?.content == "true", ix.keys[i].writable)
+            assertEquals("$name.$n signer", a["signer"]?.jsonPrimitive?.content == "true", ix.keys[i].signer)
+        }
+    }
+
+    @Test
+    fun skrExitInstructionsMatchTheProgramsIdl() {
+        assertMatchesIdl("execute_unstake_skr", program.executeUnstakeSkr(devnetOwner))
+        assertMatchesIdl("release_skr", program.releaseSkr(devnetOwner, 1_000_000L))
+        // release_skr's amount is the 8 bytes after the discriminator
+        val d = program.releaseSkr(devnetOwner, 1_000_000L).data
+        assertEquals(1_000_000L, java.nio.ByteBuffer.wrap(d).order(java.nio.ByteOrder.LITTLE_ENDIAN).getLong(8))
+        // the vault is the SKR stake's owner and holds its own token account
+        val ix = program.executeUnstakeSkr(devnetOwner)
+        assertEquals(SkrStaking.userStake(program.vaultAddress(devnetOwner)), ix.keys[1].publicKey)
+    }
 }

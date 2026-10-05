@@ -88,6 +88,12 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         s.message?.let { Spacer(Modifier.height(16.dp)); Notice(it, isError = false) }
         s.busy?.let { Spacer(Modifier.height(12.dp)); Text(it, style = MaterialTheme.typography.bodyMedium, color = c.dim) }
 
+        val skr = s.skr
+        if (v != null && skr != null && (skr.shares > 0 || skr.unstakingRaw > 0 || skr.vaultHeldRaw > 0)) {
+            Spacer(Modifier.height(30.dp))
+            SkrSection(vm, s, v, skr)
+        }
+
         Spacer(Modifier.height(30.dp))
         Label("Trading wallet")
         Spacer(Modifier.height(4.dp))
@@ -146,18 +152,22 @@ private fun PendingWithdraw(vm: AppViewModel, s: AppState, v: VaultProgram.Vault
     val c = Kept.colors
     val left = v.withdrawUnlockAt - s.nowSec
     val ready = left <= 0
+    val isSkr = v.withdrawAsset == VaultProgram.Asset.StakedSkr
     Column(Modifier.fillMaxWidth().background(c.raised).padding(18.dp)) {
-        Label(if (ready) "Ready to take out" else "Unlocks in")
+        Label(if (ready) (if (isSkr) "Ready to unstake" else "Ready to take out") else "Unlocks in")
         Spacer(Modifier.height(6.dp))
-        Text(if (ready) "${fmtSol(v.withdrawAmount)} SOL" else fmtCountdown(left), style = MaterialTheme.typography.headlineMedium.merge(NumberStyle), color = if (ready) c.brass else c.bone)
+        Text(
+            if (ready) (if (isSkr) "Staked SKR" else "${fmtSol(v.withdrawAmount)} SOL") else fmtCountdown(left),
+            style = MaterialTheme.typography.headlineMedium.merge(NumberStyle), color = if (ready) c.brass else c.bone,
+        )
         Spacer(Modifier.height(4.dp))
         Text(
-            "${fmtSol(v.withdrawAmount)} SOL to ${if (v.withdrawTo == v.owner) "your wallet" else "your trading wallet"}",
+            if (isSkr) "Your staked SKR, back to your wallet" else "${fmtSol(v.withdrawAmount)} SOL to ${if (v.withdrawTo == v.owner) "your wallet" else "your trading wallet"}",
             style = MaterialTheme.typography.bodyMedium, color = c.dim,
         )
         Spacer(Modifier.height(16.dp))
         if (ready) {
-            KeptButton("Take it out", { vm.executeWithdraw() }, busy = s.busy != null)
+            KeptButton(if (isSkr) "Start unstaking" else "Take it out", { if (isSkr) vm.executeSkrUnstake() else vm.executeWithdraw() }, busy = s.busy != null)
             Spacer(Modifier.height(10.dp))
         }
         KeptGhostButton("Cancel, keep it in the vault", { vm.cancelWithdraw() }, enabled = s.busy == null)
@@ -198,3 +208,25 @@ private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long,
 
 /** Roughly the rent the vault account must keep; the program refuses to dip into it. */
 private const val RENT_RESERVE = 2_100_000L
+
+@Composable
+private fun SkrSection(vm: AppViewModel, s: AppState, v: VaultProgram.VaultState, skr: app.kept.SkrPosition) {
+    val c = Kept.colors
+    val skrPending = v.hasPendingWithdraw && v.withdrawAsset == VaultProgram.Asset.StakedSkr
+    Label("Staked SKR")
+    Spacer(Modifier.height(4.dp))
+    if (skr.shares > 0) StatRow("Staked in your vault", String.format(java.util.Locale.US, "%.2f SKR", skr.valueRaw / 1e6), valueColor = c.brass)
+    if (skr.unstakingRaw > 0) {
+        val ready = s.nowSec >= skr.unstakeStartedAt + skr.skrCooldownSecs
+        StatRow("Unstaking", String.format(java.util.Locale.US, "%.2f SKR", skr.unstakingRaw / 1e6))
+        StatRow("Free in", if (ready) "now" else fmtCountdown(skr.unstakeStartedAt + skr.skrCooldownSecs - s.nowSec))
+    }
+    if (skr.vaultHeldRaw > 0) StatRow("Waiting in the vault", String.format(java.util.Locale.US, "%.2f SKR", skr.vaultHeldRaw / 1e6))
+    Spacer(Modifier.height(14.dp))
+    val collectReady = skr.vaultHeldRaw > 0 || (skr.unstakingRaw > 0 && s.nowSec >= skr.unstakeStartedAt + skr.skrCooldownSecs)
+    when {
+        collectReady -> KeptButton("Send my SKR to my wallet", { vm.collectSkr() }, busy = s.busy != null)
+        skr.shares > 0 && !v.hasPendingWithdraw -> KeptGhostButton("Unstake my SKR", { vm.requestSkrUnstake() }, enabled = s.busy == null)
+        skrPending -> Text("Your unstake request is in the panel above.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+    }
+}

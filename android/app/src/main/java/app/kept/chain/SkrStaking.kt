@@ -109,4 +109,30 @@ object SkrStaking {
         require(hi == 0L && lo >= 0) { "share count too large" }
         return lo
     }
+
+    /** SKR's global share price, scaled by 1e9, from the StakeConfig account (u128 at offset 137). */
+    fun sharePrice(stakeConfig: ByteArray): java.math.BigInteger {
+        val b = ByteBuffer.wrap(stakeConfig).order(ByteOrder.LITTLE_ENDIAN)
+        b.position(8 + 1 + 32 * 3 + 8 + 8 + 16) // disc, bump, authority/mint/vault, min stake, cooldown, total shares
+        val lo = java.math.BigInteger(java.lang.Long.toUnsignedString(b.long))
+        val hi = java.math.BigInteger(java.lang.Long.toUnsignedString(b.long))
+        return lo.add(hi.shiftLeft(64))
+    }
+
+    /** What `shares` are worth in SKR base units at the current share price. */
+    fun shareValue(shares: Long, stakeConfig: ByteArray): Long =
+        java.math.BigInteger.valueOf(shares).multiply(sharePrice(stakeConfig)).divide(java.math.BigInteger.valueOf(1_000_000_000L)).toLong()
+
+    /** SKR that is in SKR's own unstake period for this stake, and when it started (unix seconds). */
+    data class Unstaking(val amountRaw: Long, val startedAt: Long)
+
+    fun unstakingOf(userStakeAccount: ByteArray): Unstaking {
+        val b = ByteBuffer.wrap(userStakeAccount).order(ByteOrder.LITTLE_ENDIAN)
+        b.position(userStakeAccount.size - 16)
+        return Unstaking(b.long, b.long)
+    }
+
+    /** SKR's unstake period in seconds, from the StakeConfig account (u64 at offset 8 + 1 + 96 + 8). */
+    fun cooldownSecs(stakeConfig: ByteArray): Long =
+        ByteBuffer.wrap(stakeConfig).order(ByteOrder.LITTLE_ENDIAN).getLong(8 + 1 + 32 * 3 + 8)
 }

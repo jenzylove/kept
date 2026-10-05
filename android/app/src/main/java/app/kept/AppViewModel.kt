@@ -3,6 +3,7 @@ package app.kept
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.kept.chain.SkrStaking
 import app.kept.chain.VaultProgram
 import app.kept.mirror.MirrorLoader
 import app.kept.reflex.BankEntry
@@ -17,6 +18,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.sol4k.PublicKey
 
+/** The vault's SKR: staked shares, SKR already unstaking inside SKR's own period, and SKR waiting in the vault. */
+data class SkrPosition(
+    val shares: Long,
+    val valueRaw: Long,
+    val unstakingRaw: Long,
+    val unstakeStartedAt: Long,
+    val skrCooldownSecs: Long,
+    val vaultHeldRaw: Long,
+)
+
 data class AppState(
     val mainWallet: String? = null,
     val tradingWallet: String? = null,
@@ -25,6 +36,8 @@ data class AppState(
     val vaultLamports: Long = 0,
     val tradingLamports: Long = 0,
     val skrRaw: Long = 0,
+    val skr: SkrPosition? = null,
+    val bankAsset: String = "sol",
     val log: List<BankEntry> = emptyList(),
     val reflexOn: Boolean = false,
     /** False until the first read of the chain finishes, so we don't flash the wrong screen. */
@@ -100,7 +113,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 block()
             } catch (e: app.kept.wallet.WalletRejected) {
-                _state.update { it.copy(error = "Cancelled in the wallet.") }
+                val m = e.message.orEmpty()
+                val slow = m.contains("invalid for signing", true) || m.contains("payloads invalid", true) || m.contains("Blockhash", true)
+                _state.update {
+                    it.copy(
+                        error = if (slow) "The network rejected that, most likely because approving took too long. Try again and approve within a minute."
+                        else "The wallet did not complete that: ${m.take(160).ifBlank { "cancelled" }}",
+                    )
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(error = friendly(e)) }
             } finally {
@@ -132,10 +152,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     vaultLamports = if (vault != null) rpc.balance(vaultAddr) else 0
                     skr = runCatching { rpc.tokenBalance(main, SKR_MINT) }.getOrDefault(0)
                 }
+                var skrPos: SkrPosition? = null
+                if (main != null && vault != null && BuildConfig.CLUSTER == "mainnet-beta") {
+                    skrPos = runCatching {
+                        val vaultPk = program.vaultAddress(PublicKey(main))
+                        val us = rpc.accountData(SkrStaking.userStake(vaultPk).toBase58())
+                        val cfg = rpc.accountData(SkrStaking.CONFIG.toBase58())
+                        val held = runCatching { rpc.tokenBalance(vaultPk.toBase58(), SKR_MINT) }.getOrDefault(0)
+                        if (us == null || cfg == null) null else {
+                            val shares = SkrStaking.sharesOf(us)
+                            val un = SkrStaking.unstakingOf(us)
+                            SkrPosition(shares, SkrStaking.shareValue(shares, cfg), un.amountRaw, un.startedAt, SkrStaking.cooldownSecs(cfg), held)
+                        }
+                    }.getOrNull()
+                }
                 _state.update {
                     it.copy(
                         tradingWallet = trading?.toBase58(), vaultAddress = vaultAddr, vault = vault, vaultLamports = vaultLamports,
                         tradingLamports = tradingLamports, skrRaw = skr, log = kept.reflexStore.load().log,
+                        skr = skrPos, bankAsset = kept.prefs.bankAsset,
                         reflexOn = vault != null && kept.prefs.vaultReady, loaded = true,
                     )
                 }
@@ -239,6 +274,52 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.executeWithdrawSol(main, v.withdrawTo)))
         rpc.confirm(w.signAndSend(tx))
         _state.update { it.copy(message = "Done. The money is on its way to ${short(v.withdrawTo.toBase58())}.") }
+        refresh()
+    }
+
+    fun setBankAsset(asset: String) {
+        kept.prefs.bankAsset = asset
+        _state.update { it.copy(bankAsset = asset) }
+    }
+
+    /** Step 1 of getting staked SKR out: ask, then wait the vault's cooldown like any withdrawal. */
+    fun requestSkrUnstake() = work("Asking to unstake…") {
+        val w = wallet ?: error("Wallet not ready")
+        val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
+        val pos = _state.value.skr ?: error("No staked SKR")
+        val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.requestWithdraw(main, VaultProgram.Asset.StakedSkr, pos.shares, main)))
+        rpc.confirm(w.signAndSend(tx))
+        _state.update { it.copy(message = "Requested. It unlocks after your vault's wait.") }
+        refresh()
+    }
+
+    /** Step 2, after the vault's wait: tell the SKR program to start unstaking. SKR then runs its own period. */
+    fun executeSkrUnstake() = work("Unstaking…") {
+        val w = wallet ?: error("Wallet not ready")
+        val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
+        val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.executeUnstakeSkr(main)))
+        rpc.confirm(w.signAndSend(tx))
+        _state.update { it.copy(message = "Unstaking started. SKR releases it after its own waiting period.") }
+        refresh()
+    }
+
+    /** Step 3, after SKR's period: collect into the vault and send to the owner in one signature. */
+    fun collectSkr() = work("Collecting your SKR…") {
+        val w = wallet ?: error("Wallet not ready")
+        val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
+        val vault = program.vaultAddress(main)
+        val pos = _state.value.skr ?: error("No SKR position")
+        val amount = pos.unstakingRaw + pos.vaultHeldRaw
+        require(amount > 0) { "Nothing to collect yet" }
+        val ixs = buildList {
+            add(SkrStaking.createAtaIdempotent(main, vault))
+            if (pos.unstakingRaw > 0) add(SkrStaking.withdraw(vault))
+            add(SkrStaking.createAtaIdempotent(main, main))
+            add(program.releaseSkr(main, amount))
+        }
+        val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, ixs)
+        rpc.confirm(w.signAndSend(tx))
+        _state.update { it.copy(message = "Done. Your SKR is back in your wallet.") }
         refresh()
     }
 

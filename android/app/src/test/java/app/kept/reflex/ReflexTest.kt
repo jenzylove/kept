@@ -191,4 +191,64 @@ class ReflexTest {
         assertEquals(state, JsonFileStore(f).load())
         assertEquals(java.math.BigInteger("100"), state.enginePositions()["M"]!!.raw)
     }
+
+    private class FakeSkrBank(private val result: SkrBanked? = null, private val boom: Exception? = null) : SkrBank {
+        var calls = 0
+        var lastLamports = 0L
+        override suspend fun bank(lamports: Long, vaultOwner: org.sol4k.PublicKey): SkrBanked {
+            calls++; lastLamports = lamports
+            boom?.let { throw it }
+            return result!!
+        }
+    }
+
+    private fun skrReflex(chain: Chain, bank: SkrBank, tier: Boolean = true, store: StateStore = MemoryStore()) = Reflex(
+        chain, Keypair.generate(), program, store, { Rules(vaultOwner, 5000, BankAsset.StakedSkr) },
+        watched = trader, clock = { 1_900_000_000L }, skrBank = bank, skrTier = { tier },
+    )
+
+    @Test
+    fun skrModeBanksTheShareIntoStakedSkrAndSendsNoSolBank() = runBlocking {
+        val txs = vectors(trader)
+        val win = Engine.mirror(txs, trader).wins.single()
+        val chain = FakeChain(txs)
+        val bank = FakeSkrBank(SkrBanked("swapSig", "stakeSig", stakedRaw = 2_500_000, waitingRaw = 0))
+        val e = skrReflex(chain, bank).drain().single()
+        assertEquals(BankEntry.Status.Confirmed, e.status)
+        assertEquals("SKR", e.asset)
+        assertEquals("stakeSig", e.stakeSignature)
+        assertEquals(2_500_000L, e.stakedSkrRaw)
+        assertEquals(win.profit.toLong() / 2, bank.lastLamports)
+        assertTrue("no SOL bank is sent in SKR mode", chain.sent.isEmpty())
+    }
+
+    @Test
+    fun skrModeRecordsSkrBoughtButUnderTheMinimumStakeAsWaiting() = runBlocking {
+        val bank = FakeSkrBank(SkrBanked("swapSig", null, stakedRaw = 0, waitingRaw = 400_000))
+        val e = skrReflex(FakeChain(vectors(trader)), bank).drain().single()
+        assertEquals(BankEntry.Status.Confirmed, e.status)
+        assertEquals(0L, e.stakedSkrRaw)
+        assertEquals(400_000L, e.waitingSkrRaw)
+    }
+
+    @Test
+    fun ifTheOwnerNoLongerHoldsTheTierTheWinIsBankedAsSolInstead() = runBlocking {
+        val chain = FakeChain(vectors(trader))
+        val bank = FakeSkrBank(SkrBanked("s", "t", 1, 0))
+        val e = skrReflex(chain, bank, tier = false).drain().single()
+        assertEquals(0, bank.calls)
+        assertEquals("SOL", e.asset)
+        assertEquals(1, chain.sent.size)
+    }
+
+    @Test
+    fun aFailedSkrBankIsRecordedAndNeverFallsBackToSol() = runBlocking {
+        val chain = FakeChain(vectors(trader))
+        val bank = FakeSkrBank(boom = IllegalStateException("No route for SKR"))
+        val e = skrReflex(chain, bank).drain().single()
+        assertEquals(BankEntry.Status.Failed, e.status)
+        assertEquals("SKR", e.asset)
+        assertTrue(e.reason!!.contains("No route for SKR"))
+        assertTrue("the win is not silently banked as SOL", chain.sent.isEmpty())
+    }
 }

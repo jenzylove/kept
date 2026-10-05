@@ -72,6 +72,38 @@ class VaultProgram(programId: String) {
             AccountMeta.writable(vaultAddress(owner)),
         )
 
+    /**
+     * After the vault's cooldown, ask the SKR program to start unstaking the vault's shares. Anyone
+     * can send this; the program checks the cooldown and signs for the vault itself.
+     */
+    fun executeUnstakeSkr(owner: PublicKey): Instruction {
+        val vault = vaultAddress(owner)
+        return ix(
+            data("execute_unstake_skr", 0) {},
+            AccountMeta.writable(vault),
+            AccountMeta.writable(SkrStaking.userStake(vault)),
+            AccountMeta.writable(SkrStaking.CONFIG),
+            AccountMeta.writable(SkrStaking.GUARDIAN_POOL),
+            AccountMeta(SkrStaking.STAKE_VAULT),
+            AccountMeta(SkrStaking.MINT),
+            AccountMeta(SkrStaking.EVENT_AUTHORITY),
+            AccountMeta(SkrStaking.PROGRAM),
+        )
+    }
+
+    /** Move SKR sitting in the vault's token account to the owner's. Only the owner can do this. */
+    fun releaseSkr(owner: PublicKey, amount: Long): Instruction {
+        val vault = vaultAddress(owner)
+        return ix(
+            data("release_skr", 8) { putLong(amount) },
+            AccountMeta.signer(owner),
+            AccountMeta.writable(vault),
+            AccountMeta.writable(SkrStaking.ata(vault)),
+            AccountMeta.writable(SkrStaking.ata(owner)),
+            AccountMeta(SkrStaking.TOKEN_PROGRAM),
+        )
+    }
+
     enum class Asset { Sol, Skr, StakedSkr }
 
     /** Decoded `Vault` account. Layout: 8 byte discriminator, then the fields in declaration order. */
