@@ -42,7 +42,9 @@ One button: **Start keeping.**
 ## 6. SKR
 
 - **Bank into staked SKR (SKR tier rule):** the reflex swaps the banked share to SKR and stakes it with the SKR staking program in the **vault's** name. Banked wins earn staking rewards while locked, and only the Kept program can unstake them, under the same cooldown.
-- **Access tier:** holding at least the tier amount of SKR in the main wallet unlocks per-coin rules, bank-into-SKR, a custom bank share, and more than one trading wallet. Free: one trading wallet with a fixed 50% share into SOL. The tier is checked live from the SKR balance; the threshold is set in config and shown in the app.
+- **Access tier:** holding 100 SKR in the main wallet unlocks a custom bank share and banking into staked SKR. Free: one trading wallet with a fixed 50% share into SOL. The tier is checked live from the SKR balance, in the app and again by the reflex at the moment it banks; the threshold is one constant, shown in the app.
+- **Cut from the first plan, with the reason:** per coin rules and several trading wallets. Neither is needed to prove the core claim, and each would have taken time from verifying what the app already does against real chains. They are not claimed anywhere in the product.
+- **Getting staked SKR out** is three steps: ask (the vault's wait), unstake (the vault tells the SKR program), then collect after SKR's own two day period and send to the owner in one signature.
 
 ## 7. Full scope (one build)
 
@@ -50,7 +52,7 @@ One button: **Start keeping.**
 |---|---|
 | Program `kept_vault` (Anchor, mainnet) | `init_vault`, `bank`, `bank_skr_stake` bookkeeping, `request_withdraw`, `cancel_withdraw`, `execute_withdraw`, `set_rules` (with the delayed cooldown decrease), SKR `unstake` and `withdraw` through CPI signed by the vault PDA. `Banked` events. |
 | Profit engine | Pure functions: parse a transaction into SOL and token deltas, keep average cost per mint, return realized profit per sell. Unit tests with shared test vectors from real transactions. Kotlin (device) and TypeScript (web), same vectors. |
-| Android app (Kotlin, Jetpack Compose) | Mirror, onboarding (connect main wallet over MWA, create and fund the trading wallet, create the vault), reflex foreground service with local notifications, in-app swap (Jupiter), vault screen (balance, bank history, withdraw with cooldown, cancel), rules screen (tier gated), trading key export for Phantom, settings. |
+| Android app (Kotlin, Jetpack Compose) | Mirror (bulk history through our proxy), onboarding (connect main wallet over MWA, create and fund the trading wallet, create the vault), reflex foreground service with local notifications, in-app swap (Jupiter), vault screen (balance, bank history, withdraw with cooldown, cancel, staked SKR and its three step exit), rules screen (share, bank as SOL or staked SKR, wait; tier gated), trading key export for Phantom behind the lock screen, settings. |
 | Web (Next.js on Vercel) | Web Mirror for people without Android, a `/proof` page that lists every `Banked` event from the program live, an APK download, and the judge fast path. |
 | Proof | Real mainnet banks from the burner and the demo wallets, linked from `/proof` and the README. |
 | Distribution | Signed release APK, published to the Solana dApp Store. |
