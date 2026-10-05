@@ -161,32 +161,59 @@ object Engine {
         return err != null && err !is JsonNull
     }
 
+    /** One parsed trade ready to replay: its signature, time, and what it did to the wallet. */
+    data class Item(val sig: String, val time: Long?, val d: Deltas)
+
     /**
-     * Mirror: replay a wallet's history (oldest first) and summarise. [keptAtBps] is what the vault
-     * would hold if Kept had banked that share of every win (a plain sum; it ignores how banking
-     * would have changed later trade sizes).
+     * What one Helius "enhanced" transaction did to [owner]. Same result as [deltas] on the raw
+     * transaction (the tests prove it on real vectors), but one bulk request returns up to 100 of them.
      */
-    fun mirror(txs: List<JsonObject>, owner: String, keptAtBps: Int = 5000): Mirror {
+    fun enhancedDeltas(h: JsonObject, owner: String): Deltas {
+        var sol = ZERO
+        val tokens = LinkedHashMap<String, TokenDelta>()
+        for (a in h.arr("accountData") ?: JsonArray(emptyList())) {
+            val o = a.jsonObject
+            if (o["account"]?.jsonPrimitive?.contentOrNull == owner) sol += o["nativeBalanceChange"].big()
+            for (t in o.arr("tokenBalanceChanges") ?: JsonArray(emptyList())) {
+                val to = t.jsonObject
+                if (to["userAccount"]?.jsonPrimitive?.contentOrNull != owner) continue
+                val raw = to.obj("rawTokenAmount")!!
+                val amount = raw["tokenAmount"].big()
+                val mint = to["mint"]!!.jsonPrimitive.content
+                if (mint == WSOL) { sol += amount; continue }
+                val decimals = (raw["decimals"] as? JsonPrimitive)?.longOrNull?.toInt() ?: 0
+                tokens[mint] = TokenDelta((tokens[mint]?.raw ?: ZERO) + amount, decimals)
+            }
+        }
+        if (h["feePayer"]?.jsonPrimitive?.contentOrNull == owner) sol += h["fee"].big()
+        tokens.entries.removeAll { it.value.raw == ZERO }
+        return Deltas(sol, tokens)
+    }
+
+    /**
+     * Replay parsed trades (oldest first) and summarise. [keptAtBps] is what the vault would hold
+     * if Kept had banked that share of every win (a plain sum; it ignores how banking would have
+     * changed later trade sizes).
+     */
+    fun replay(items: List<Item>, keptAtBps: Int = 5000): Mirror {
         var positions = emptyMap<String, Position>()
         val wins = ArrayList<Win>()
         val losses = ArrayList<Win>()
         val sells = ArrayList<Win>()
         var unpriced = 0
         var swaps = 0
-        for (tx in txs) {
-            if (tx.obj("meta") == null || failed(tx)) continue
-            val c = classify(deltas(tx, owner))
+        for (it in items) {
+            val c = classify(it.d)
             if (c is Classified.Other) continue
             swaps++
             val r = apply(positions, c)
             positions = r.positions
             val e = r.event as? Event.Sold ?: continue
-            val sig = signature(tx)
             val profit = e.profit
             when {
                 profit == null -> unpriced++
-                profit.signum() > 0 -> Win(sig, e.mint, profit, blockTime(tx)).also { wins += it; sells += it }
-                else -> Win(sig, e.mint, profit, blockTime(tx)).also { losses += it; sells += it }
+                profit.signum() > 0 -> Win(it.sig, e.mint, profit, it.time).also { w -> wins += w; sells += w }
+                else -> Win(it.sig, e.mint, profit, it.time).also { w -> losses += w; sells += w }
             }
         }
         val won = wins.fold(ZERO) { s, w -> s + w.profit }
@@ -202,6 +229,23 @@ object Engine {
             wouldHaveKept = wins.fold(ZERO) { s, w -> s + bankAmount(w.profit, keptAtBps) },
         )
     }
+
+    /** Mirror from raw `getTransaction` results (jsonParsed), oldest first. */
+    fun mirror(txs: List<JsonObject>, owner: String, keptAtBps: Int = 5000): Mirror =
+        replay(
+            txs.filter { it.obj("meta") != null && !failed(it) }
+                .map { Item(signature(it), blockTime(it), deltas(it, owner)) },
+            keptAtBps,
+        )
+
+    /** Mirror from Helius enhanced transactions (any order; failed ones are skipped). */
+    fun mirrorEnhanced(list: List<JsonObject>, owner: String, keptAtBps: Int = 5000): Mirror =
+        replay(
+            list.filter { (it["transactionError"] ?: JsonNull) is JsonNull }
+                .sortedBy { (it["slot"] as? JsonPrimitive)?.longOrNull ?: 0L }
+                .map { Item(it["signature"]!!.jsonPrimitive.content, (it["timestamp"] as? JsonPrimitive)?.longOrNull, enhancedDeltas(it, owner)) },
+            keptAtBps,
+        )
 
     /** Cumulative profit and cumulative kept, in SOL, after each priced sell. Feeds the Staircase. */
     data class Series(val wallet: List<Double>, val kept: List<Double>)

@@ -101,7 +101,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun loadHomeMirror() {
         val trading = kept.tradingKey.load()?.publicKey?.toBase58() ?: return
         viewModelScope.launch {
-            runCatching { MirrorLoader(rpc).load(trading, days = 365, maxTx = 300) }.onSuccess { _home.value = it }
+            runCatching { MirrorLoader(rpc, BuildConfig.HISTORY_URL).load(trading, days = 365, maxTx = 300) }.onSuccess { _home.value = it }
         }
     }
 
@@ -189,7 +189,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _mirror.value = MirrorUi(running = true)
             try {
-                val r = MirrorLoader(rpc).load(a, onProgress = { p -> _mirror.update { it.copy(progress = p.fetched to p.total) } })
+                val r = MirrorLoader(rpc, BuildConfig.HISTORY_URL).load(a, onProgress = { p -> _mirror.update { it.copy(progress = p.fetched to p.total) } })
                 _mirror.value = MirrorUi(result = r)
             } catch (e: Exception) {
                 _mirror.value = MirrorUi(error = "Couldn't read that wallet: ${e.message?.take(120)}")

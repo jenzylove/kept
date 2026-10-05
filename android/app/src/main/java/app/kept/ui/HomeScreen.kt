@@ -1,5 +1,8 @@
 package app.kept.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +29,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +45,7 @@ import app.kept.AppViewModel
 import app.kept.chain.VaultProgram
 import app.kept.engine.Engine
 import app.kept.reflex.BankEntry
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(vm: AppViewModel, s: AppState) {
@@ -65,7 +70,16 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
             }
         }
         Spacer(Modifier.height(10.dp))
-        Text("${fmtSol(s.vaultLamports)}", style = MaterialTheme.typography.displayLarge.merge(NumberStyle), color = c.bone)
+        // Count up to the new total, and flash brass for a moment when money has just arrived.
+        val shown by animateFloatAsState(s.vaultLamports.toFloat(), tween(900), label = "vault")
+        var flash by remember { mutableStateOf(false) }
+        var last by remember { mutableStateOf(s.vaultLamports) }
+        LaunchedEffect(s.vaultLamports) {
+            if (s.vaultLamports > last && last > 0) { flash = true; delay(1600); flash = false }
+            last = s.vaultLamports
+        }
+        val numberColor by animateColorAsState(if (flash) c.brass else c.bone, tween(700), label = "flash")
+        Text(fmtSol(shown.toLong()), style = MaterialTheme.typography.displayLarge.merge(NumberStyle), color = numberColor)
         Text(
             if (v == null) "SOL" else "SOL kept across ${v.bankCount} ${if (v.bankCount == 1L) "win" else "wins"}",
             style = MaterialTheme.typography.bodyLarge, color = c.dim,

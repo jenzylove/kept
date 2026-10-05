@@ -29,6 +29,8 @@ android {
         // endpoint is fine; the reflex also polls through the proxy, so a missed nudge costs seconds.
         val cluster = local.getProperty("kept.cluster", "mainnet-beta")
         buildConfigField("String", "WS_URL", "\"${local.getProperty("kept.ws", if (cluster == "mainnet-beta") "wss://api.mainnet-beta.solana.com" else "wss://api.devnet.solana.com")}\"")
+        // Bulk wallet history for the Mirror (our proxy holds the API key). Empty means read over plain RPC.
+        buildConfigField("String", "HISTORY_URL", "\"${local.getProperty("kept.history", "")}\"")
         buildConfigField("String", "CLUSTER", "\"${local.getProperty("kept.cluster", "mainnet-beta")}\"")
         // Emulator testing only: a software main wallet instead of a wallet app. Ignored in release builds.
         buildConfigField("boolean", "DEBUG_WALLET", local.getProperty("kept.debugWallet", "false"))

@@ -10,9 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import app.kept.R
 
 /**
  * Kept's look: a ratchet. Dark ink and warm bone, one brass accent. The signature visual is a
@@ -58,8 +61,15 @@ object Kept {
     val colors: KeptColors @Composable get() = LocalKept.current
 }
 
-private val Mono = FontFamily.Monospace
-private val Display = FontFamily.Serif
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+private fun variable(res: Int, weight: Int) = Font(
+    res, FontWeight(weight),
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight)),
+)
+
+// Fraunces (display) and JetBrains Mono (numbers): the same pair the site uses. Both are SIL OFL.
+private val Mono = FontFamily(variable(R.font.jetbrains_mono, 400), variable(R.font.jetbrains_mono, 500), variable(R.font.jetbrains_mono, 600))
+private val Display = FontFamily(variable(R.font.fraunces, 400), variable(R.font.fraunces, 500), variable(R.font.fraunces, 600))
 
 val KeptType = Typography(
     displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 56.sp, lineHeight = 56.sp, letterSpacing = (-1.5).sp),

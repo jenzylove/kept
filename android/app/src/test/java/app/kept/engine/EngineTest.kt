@@ -13,7 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class EngineTest {
-    private class Vector(val owner: String, val sig: String, val tx: JsonObject, val expectedSol: String, val expectedTokens: Map<String, String>)
+    private class Vector(val owner: String, val sig: String, val tx: JsonObject, val expectedSol: String, val expectedTokens: Map<String, String>, val enhanced: JsonObject?)
 
     private val vectors: List<Vector> by lazy {
         val path = System.getProperty("kept.vectors") ?: error("kept.vectors not set")
@@ -26,6 +26,7 @@ class EngineTest {
                 tx = o["tx"]!!.jsonObject,
                 expectedSol = exp["sol"]!!.jsonPrimitive.content,
                 expectedTokens = exp["tokens"]!!.jsonObject.mapValues { (_, v) -> v.jsonPrimitive.content },
+                enhanced = o["enhanced"] as? JsonObject,
             )
         }
     }
@@ -111,6 +112,34 @@ class EngineTest {
             assertEquals("givenBack for $owner", o["givenBack"]!!.jsonPrimitive.content, m.givenBack.toString())
             assertEquals("wins for $owner", o["wins"]!!.jsonPrimitive.content.toInt(), m.wins.size)
             assertEquals("kept for $owner", o["wouldHaveKept"]!!.jsonPrimitive.content, m.wouldHaveKept.toString())
+        }
+    }
+
+    @Test
+    fun theBulkPathGivesTheSameDeltasAsTheRawPathOnEveryRealVector() {
+        var checked = 0
+        for (v in vectors) {
+            val h = v.enhanced ?: continue
+            val raw = Engine.deltas(v.tx, v.owner)
+            val bulk = Engine.enhancedDeltas(h, v.owner)
+            assertEquals("sol for ${v.sig}", raw.sol, bulk.sol)
+            assertEquals("tokens for ${v.sig}", raw.tokens.mapValues { it.value.raw }, bulk.tokens.mapValues { it.value.raw })
+            checked++
+        }
+        assertTrue("checked $checked vectors", checked >= 10)
+    }
+
+    @Test
+    fun mirrorEnhancedEqualsMirrorOverTheSameRealHistory() {
+        for (owner in vectors.map { it.owner }.distinct()) {
+            val mine = vectors.filter { it.owner == owner }
+            val a = Engine.mirror(mine.map { it.tx }.sortedBy { it["slot"]!!.jsonPrimitive.content.toLong() }, owner)
+            val b = Engine.mirrorEnhanced(mine.mapNotNull { it.enhanced }, owner)
+            assertEquals(a.won, b.won)
+            assertEquals(a.givenBack, b.givenBack)
+            assertEquals(a.wins.size, b.wins.size)
+            assertEquals(a.wouldHaveKept, b.wouldHaveKept)
+            assertEquals(a.sells.map { it.sig }, b.sells.map { it.sig })
         }
     }
 }
