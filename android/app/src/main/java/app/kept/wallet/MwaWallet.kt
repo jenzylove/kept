@@ -22,7 +22,7 @@ class MwaWallet(
 ) : MainWallet {
     private val adapter = MobileWalletAdapter(
         ConnectionIdentity(
-            identityUri = Uri.parse("https://kept.vercel.app"),
+            identityUri = Uri.parse("https://kept-seeker.vercel.app"),
             iconUri = Uri.parse("favicon.ico"),
             identityName = "Kept",
         ),
