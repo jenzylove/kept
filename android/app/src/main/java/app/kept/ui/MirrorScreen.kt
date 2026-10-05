@@ -1,0 +1,133 @@
+package app.kept.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import app.kept.AppViewModel
+import app.kept.engine.Engine
+import androidx.compose.runtime.collectAsState
+
+/** The front door: paste any wallet and see the truth about its last 90 days. */
+@Composable
+fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: String?) {
+    val ui by vm.mirror.collectAsState()
+    var address by rememberSaveable { mutableStateOf(connectedWallet.orEmpty()) }
+    val c = Kept.colors
+    val ctx = LocalContext.current
+
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 28.dp)) {
+        Label("Kept")
+        Spacer(Modifier.height(18.dp))
+        Text("You won more than you kept.", style = MaterialTheme.typography.displayMedium, color = c.bone)
+        Spacer(Modifier.height(14.dp))
+        Text(
+            "Paste any Solana wallet. We read its real trades and show what it won, what it gave back, and what would be sitting in a vault if every win had been banked.",
+            style = MaterialTheme.typography.bodyLarge, color = c.dim,
+        )
+        Spacer(Modifier.height(28.dp))
+
+        OutlinedTextField(
+            value = address,
+            onValueChange = { address = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Wallet address") },
+            shape = RoundedCornerShape(4.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = c.brass, unfocusedBorderColor = c.line, focusedLabelColor = c.brass, cursorColor = c.brass),
+        )
+        Spacer(Modifier.height(12.dp))
+        KeptButton(if (ui.running) "Reading…" else "Read this wallet", onClick = { vm.runMirror(address) }, busy = ui.running, enabled = address.isNotBlank())
+
+        ui.progress?.takeIf { ui.running }?.let { (done, total) ->
+            Spacer(Modifier.height(14.dp))
+            Text("Reading $done of $total trades…", style = MaterialTheme.typography.bodyMedium.merge(NumberStyle), color = c.dim)
+        }
+        ui.error?.let { Spacer(Modifier.height(14.dp)); Notice(it, isError = true) }
+
+        ui.result?.let { r ->
+            Spacer(Modifier.height(36.dp))
+            val m = r.mirror
+            val series = remember(m) { Engine.series(m) }
+            Label("Last ${r.days} days")
+            Spacer(Modifier.height(10.dp))
+            if (m.wins.isEmpty() && m.losses.isEmpty()) {
+                Text("No priced sells found.", style = MaterialTheme.typography.headlineMedium, color = c.bone)
+                Spacer(Modifier.height(8.dp))
+                Text("We read ${r.scanned} transactions and found no sell with a known cost in this window.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+            } else {
+                Text("${fmtSol(m.won, 2)} SOL", style = MaterialTheme.typography.displayLarge, color = c.bone)
+                Text("won on ${m.wins.size} winning sells", style = MaterialTheme.typography.bodyLarge, color = c.dim)
+                Spacer(Modifier.height(22.dp))
+                Staircase(series.wallet, series.kept, height = 150.dp)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Legend(c.loss, "Wallet profit")
+                    Legend(c.brass, "Kept at 50%")
+                }
+                Spacer(Modifier.height(26.dp))
+                StatRow("Gave back on ${m.losses.size} losing sells", "−${fmtSol(m.givenBack, 2)} SOL", valueColor = c.loss)
+                StatRow("In your vault, if Kept had been on", "${fmtSol(m.wouldHaveKept, 2)} SOL", valueColor = c.brass)
+                if (m.unpriced > 0) StatRow("Sells with no known cost (not counted)", "${m.unpriced}")
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Computed from this wallet's real transactions over ${r.scanned} reads. Simple sum: it ignores how banking would have changed your later trade sizes." +
+                        if (r.truncated) " History was longer than we read, so older trades are not counted." else "",
+                    style = MaterialTheme.typography.bodyMedium, color = c.dim,
+                )
+                Spacer(Modifier.height(20.dp))
+                Label("Your biggest wins, with proof")
+                Spacer(Modifier.height(6.dp))
+                m.wins.sortedByDescending { it.profit }.take(5).forEach {
+                    StatRow(short(it.sig), "+${fmtSol(it.profit, 3)} SOL", onClick = { openExplorer(ctx, "tx", it.sig) })
+                }
+            }
+            onStart?.let {
+                Spacer(Modifier.height(28.dp))
+                KeptButton("Start keeping", it)
+            }
+        }
+        if (ui.result == null && onStart != null) {
+            Spacer(Modifier.height(18.dp))
+            KeptGhostButton("Skip, set up Kept", onStart)
+        }
+        Spacer(Modifier.height(40.dp))
+    }
+}
+
+@Composable
+private fun Legend(color: androidx.compose.ui.graphics.Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(14.dp).height(3.dp).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text(text, style = MaterialTheme.typography.labelSmall, color = Kept.colors.dim)
+    }
+}

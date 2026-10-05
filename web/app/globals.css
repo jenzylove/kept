@@ -1,0 +1,95 @@
+:root {
+  --ink: #0e0f0c;
+  --raised: #171813;
+  --line: #2a2b24;
+  --bone: #f2ede4;
+  --dim: #9a978d;
+  --brass: #d6a94a;
+  --loss: #cb5b4a;
+  --ok: #7fb37a;
+  --display: var(--font-display), 'Iowan Old Style', Georgia, serif;
+  --mono: var(--font-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --ink: #f4efe6;
+    --raised: #eae4d8;
+    --line: #d3ccbc;
+    --bone: #14150f;
+    --dim: #6b685e;
+    --brass: #8a6512;
+    --loss: #a63d2e;
+    --ok: #3f7a3a;
+  }
+}
+
+* { box-sizing: border-box; }
+html { background: var(--ink); color: var(--bone); -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--ink); }
+a { color: inherit; }
+::selection { background: var(--brass); color: var(--ink); }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.narrow { max-width: 720px; }
+
+.label { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.mono { font-family: var(--mono); font-feature-settings: 'tnum'; }
+.dim { color: var(--dim); }
+.brass { color: var(--brass); }
+.loss { color: var(--loss); }
+
+h1, h2, h3 { font-family: var(--display); font-weight: 500; letter-spacing: -0.02em; margin: 0; }
+h1 { font-size: clamp(44px, 8.2vw, 104px); line-height: 0.98; letter-spacing: -0.035em; }
+h2 { font-size: clamp(30px, 4.4vw, 52px); line-height: 1.05; }
+h3 { font-size: 24px; line-height: 1.2; }
+
+.top { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
+.top nav { display: flex; gap: 28px; }
+.top nav a { text-decoration: none; font: 500 12px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+.top nav a:hover { color: var(--bone); }
+.mark { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 15px/1 var(--display); letter-spacing: 0.02em; }
+
+.rule { height: 1px; background: var(--line); border: 0; margin: 0; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  height: 56px; padding: 0 28px; border-radius: 3px; border: 1px solid var(--brass);
+  background: var(--brass); color: var(--ink); font: 600 14px/1 system-ui, sans-serif; letter-spacing: 0.04em;
+  text-decoration: none; cursor: pointer;
+}
+.btn:disabled { background: var(--line); border-color: var(--line); color: var(--dim); cursor: default; }
+.btn.ghost { background: transparent; color: var(--bone); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--dim); }
+
+input.addr {
+  width: 100%; height: 56px; padding: 0 16px; border-radius: 3px; border: 1px solid var(--line);
+  background: transparent; color: var(--bone); font: 15px/1 var(--mono);
+}
+input.addr:focus { outline: none; border-color: var(--brass); }
+
+.stat { display: flex; justify-content: space-between; gap: 24px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.stat span:first-child { color: var(--dim); font-size: 15px; }
+.stat a { text-decoration: none; }
+.stat a:hover { color: var(--brass); }
+
+.big { font: 500 clamp(56px, 11vw, 132px)/0.95 var(--display); letter-spacing: -0.04em; }
+
+/* the staircase: the kept line draws itself */
+.stair { width: 100%; height: auto; display: block; overflow: visible; }
+.stair .kept { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.6s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .stair .kept { animation: none; stroke-dashoffset: 0; } }
+
+.steps { display: grid; gap: 0; counter-reset: s; }
+.steps > div { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 26px 0; border-top: 1px solid var(--line); }
+.steps > div::before { counter-increment: s; content: counter(s, decimal-leading-zero); font: 500 13px/1.9 var(--mono); color: var(--brass); }
+.steps p { margin: 6px 0 0; color: var(--dim); }
+
+footer { padding: 56px 0 72px; color: var(--dim); font-size: 14px; }
+
+@media (max-width: 640px) {
+  .top nav { gap: 16px; }
+  body { font-size: 16px; }
+  .steps > div { grid-template-columns: 40px 1fr; }
+}

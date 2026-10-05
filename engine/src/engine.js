@@ -80,35 +80,62 @@ export function bankAmount(profit, bps) {
 }
 
 /**
- * Mirror: replay a wallet's history (oldest first) and summarise.
- * keptAtBps: what the vault would hold if Kept had banked that share of every win
- * (a plain sum; it ignores how banking would have changed later trade sizes).
+ * What one Helius "enhanced" transaction did to `owner`. Same result as `deltas` on the raw
+ * transaction (tests prove it on real vectors), but one bulk request returns up to 100 of them,
+ * which is what makes reading a busy wallet take seconds instead of a minute.
  */
-export function mirror(txs, owner, keptAtBps = 5000) {
+export function enhancedDeltas(h, owner) {
+  let sol = 0n;
+  const tokens = {};
+  for (const a of h.accountData || []) {
+    if (a.account === owner) sol += big(a.nativeBalanceChange);
+    for (const t of a.tokenBalanceChanges || []) {
+      if (t.userAccount !== owner) continue;
+      const raw = big(t.rawTokenAmount.tokenAmount);
+      if (t.mint === WSOL) { sol += raw; continue; }
+      const prev = tokens[t.mint]?.raw ?? 0n;
+      tokens[t.mint] = { raw: prev + raw, decimals: t.rawTokenAmount.decimals };
+    }
+  }
+  if (h.feePayer === owner) sol += big(h.fee); // the fee is a cost of using Solana, not part of the price
+  for (const m of Object.keys(tokens)) if (tokens[m].raw === 0n) delete tokens[m];
+  return { sol, tokens };
+}
+
+/**
+ * Replay already-parsed trades (oldest first) and summarise.
+ * items: [{ sig, time, d: { sol, tokens } }]. keptAtBps: what the vault would hold if Kept had
+ * banked that share of every win (a plain sum; it ignores how banking would have changed later
+ * trade sizes).
+ */
+export function replay(items, keptAtBps = 5000) {
   let positions = {};
   const wins = [];
   const losses = [];
+  const sells = []; // every priced sell, in the order it happened
   let unpriced = 0;
   let swaps = 0;
-  for (const tx of txs) {
-    if (!tx || !tx.meta || tx.meta.err) continue;
-    const c = classify(deltas(tx, owner));
+  for (const { sig, time, d } of items) {
+    const c = classify(d);
     if (c.kind === 'other') continue;
     swaps++;
     const r = apply(positions, c);
     positions = r.positions;
     const e = r.event;
     if (e.kind !== 'sell') continue;
-    const sig = tx.transaction.signatures[0];
     if (e.profit === null) unpriced++;
-    else if (e.profit > 0n) wins.push({ sig, mint: e.mint, profit: e.profit, time: tx.blockTime });
-    else losses.push({ sig, mint: e.mint, profit: e.profit, time: tx.blockTime });
+    else {
+      const w = { sig, mint: e.mint, profit: e.profit, time };
+      (e.profit > 0n ? wins : losses).push(w);
+      sells.push(w);
+    }
   }
   const sum = (a) => a.reduce((s, x) => s + x.profit, 0n);
   const won = sum(wins);
   return {
     swaps,
-    sells: wins.length + losses.length + unpriced,
+    sells,
+    sellCount: wins.length + losses.length + unpriced,
     wins,
     losses,
     unpriced,
@@ -116,4 +143,23 @@ export function mirror(txs, owner, keptAtBps = 5000) {
     givenBack: -sum(losses),
     wouldHaveKept: wins.reduce((s, w) => s + bankAmount(w.profit, keptAtBps), 0n),
   };
+}
+
+/** Mirror from raw `getTransaction` results (jsonParsed), oldest first. */
+export function mirror(txs, owner, keptAtBps = 5000) {
+  const items = [];
+  for (const tx of txs) {
+    if (!tx || !tx.meta || tx.meta.err) continue;
+    items.push({ sig: tx.transaction.signatures[0], time: tx.blockTime, d: deltas(tx, owner) });
+  }
+  return replay(items, keptAtBps);
+}
+
+/** Mirror from Helius enhanced transactions (any order; failed ones are skipped). */
+export function mirrorEnhanced(list, owner, keptAtBps = 5000) {
+  const items = list
+    .filter((h) => h && !h.transactionError)
+    .sort((a, b) => a.slot - b.slot)
+    .map((h) => ({ sig: h.signature, time: h.timestamp, d: enhancedDeltas(h, owner) }));
+  return replay(items, keptAtBps);
 }

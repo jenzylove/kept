@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { deltas, classify, apply, bankAmount, mirror } from '../src/engine.js';
+import { deltas, enhancedDeltas, classify, apply, bankAmount, mirror, mirrorEnhanced } from '../src/engine.js';
 
 const vectors = JSON.parse(readFileSync(new URL('../vectors.json', import.meta.url)));
 
@@ -57,4 +57,40 @@ test('mirror over real history adds up', () => {
   const m = mirror(txs, owner);
   assert.equal(m.won, m.wins.reduce((s, w) => s + w.profit, 0n));
   assert.ok(m.wouldHaveKept <= m.won);
+});
+
+test('mirror lists every priced sell in order, and wins plus losses equal sells', () => {
+  const owner = 'GUQPSxhbssHyiACNRD6aKJhXUAmDGViuhwcyXvRr7Jvw';
+  const txs = vectors.filter((v) => v.owner === owner).map((v) => v.tx).sort((a, b) => a.slot - b.slot);
+  const m = mirror(txs, owner);
+  assert.equal(m.sells.length, m.wins.length + m.losses.length);
+  const slots = new Map(txs.map((t) => [t.transaction.signatures[0], t.slot]));
+  for (let i = 1; i < m.sells.length; i++) assert.ok(slots.get(m.sells[i - 1].sig) <= slots.get(m.sells[i].sig));
+});
+
+test('the bulk (Helius enhanced) path gives the same deltas as the raw path on every real vector', () => {
+  let checked = 0;
+  for (const v of vectors) {
+    if (!v.enhanced) continue;
+    const raw = deltas(v.tx, v.owner);
+    const bulk = enhancedDeltas(v.enhanced, v.owner);
+    assert.equal(bulk.sol, raw.sol, `sol for ${v.sig}`);
+    const norm = (t) => Object.fromEntries(Object.entries(t).map(([m, x]) => [m, x.raw.toString()]));
+    assert.deepEqual(norm(bulk.tokens), norm(raw.tokens), `tokens for ${v.sig}`);
+    checked++;
+  }
+  assert.ok(checked >= 10, `checked ${checked} vectors`);
+});
+
+test('mirrorEnhanced equals mirror over the same real history', () => {
+  for (const owner of [...new Set(vectors.map((v) => v.owner))]) {
+    const mine = vectors.filter((v) => v.owner === owner);
+    const a = mirror(mine.map((v) => v.tx).sort((x, y) => x.slot - y.slot), owner);
+    const b = mirrorEnhanced(mine.map((v) => v.enhanced), owner);
+    assert.equal(b.won, a.won);
+    assert.equal(b.givenBack, a.givenBack);
+    assert.equal(b.wins.length, a.wins.length);
+    assert.equal(b.wouldHaveKept, a.wouldHaveKept);
+    assert.deepEqual(b.sells.map((x) => x.sig), a.sells.map((x) => x.sig));
+  }
 });

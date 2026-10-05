@@ -32,7 +32,7 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 |---|---|---|---|
 | 2.1 | Test vectors: 10+ real transactions with expected deltas from an independent parser (Helius) | `engine/vectors.json` (15 vectors: legacy and v0 transactions) | [x] |
 | 2.2 | TypeScript engine passes vectors | `cd engine && npm test`: 7 pass, 0 fail | [x] |
-| 2.3 | Kotlin engine passes the same vectors | `gradlew test` output | [ ] |
+| 2.3 | Kotlin engine passes the same vectors | `gradle :app:testDebugUnitTest`: `EngineTest` 8 of 8 on the shared `engine/vectors.json`, plus a check against `mirror-expected.json` produced by the TypeScript engine | [x] |
 | 2.4 | One mirror win hand-checked against Solscan | note + link in BUILD_LOG | [ ] |
 
 ## Phase 3. Android app (Oct 5 to 7)
@@ -56,8 +56,8 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 4.1 | Next.js site on Vercel, web Mirror | live URL with a real wallet result | [ ] |
-| 4.2 | `/proof`: live `Banked` events from the program | live URL | [ ] |
+| 4.1 | Next.js site on Vercel, web Mirror | https://kept-seeker.vercel.app/ : a real busy wallet read in 14.3 s (123 wins, 12.77 SOL won, 28.05 SOL given back); screenshot `ratchet-launch/shots/web-mirror-dark.png` | [x] |
+| 4.2 | `/proof`: live `Banked` events from the program | https://kept-seeker.vercel.app/proof shows the real devnet bank (0.05 SOL); decoder tested against that event (`web/test/decode.test.mjs`). Switches to mainnet with `KEPT_CLUSTER` after the mainnet deploy | [x] |
 | 4.3 | APK download + judge fast path | live URL | [ ] |
 
 ## Phase 5. Design (Oct 7)
