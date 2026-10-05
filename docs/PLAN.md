@@ -23,8 +23,8 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 | 1.4 | Only owner can withdraw; banker can only deposit | tests `the_banker_and_strangers_cannot_withdraw`, `only_the_banker_can_bank`, `withdrawals_can_only_go_to_the_owner_or_the_trading_wallet`, `only_the_owner_can_change_rules` | [x] |
 | 1.5 | `set_rules`: cooldown decrease delayed, increase instant | test `lowering_the_cooldown_cannot_skip_the_wait_and_raising_it_is_instant` | [x] |
 | 1.6 | SKR: stake owned by vault PDA; `unstake`/`withdraw` CPI only after cooldown | LiteSVM test with the mainnet SKR program + accounts dumped into the simulator | [ ] |
-| 1.7 | Deploy to devnet first (mainnet last, after the app works) | program id + Solscan devnet link | [ ] |
-| 1.8 | Devnet: init vault, one bank, one failed early withdraw | 3 tx links | [ ] |
+| 1.7 | Deploy to devnet first (mainnet last, after the app works) | [`EWSuJmQA...`](https://explorer.solana.com/address/EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK?cluster=devnet), deploy tx `5JwN31nB...` | [x] |
+| 1.8 | Devnet: init vault, one bank, one failed early withdraw | [init](https://explorer.solana.com/tx/5rDnmHuerUJVkuHqwYH3HL2TskFcgQewCbknjQwUDkj4aNFMdYgBhiRDjppNu9gBxm5oVnmwdnBXnGjgoHSepnwt?cluster=devnet), [bank](https://explorer.solana.com/tx/Kszcag49DMrqBce58m8wqgZQQTg2VkpxyAknmr2nQisfT9ohzuWBdJDDb9wNzENbnsA115siu8VqTwfy5twJAq3?cluster=devnet), [request](https://explorer.solana.com/tx/61mhvKtxr3iJ8Uwu8DeY2RwSNQXRaNxg55aNR9ukfCiLuKW6UAJdd8TjgHXC97EgNsCq5HD2b8ha3KgiWFjtq8KA?cluster=devnet); early execute refused with `StillCooling` (6007), output in `docs/spikes/devnet-smoke-output.json` | [x] |
 
 ## Phase 2. Profit engine (Oct 5)
 
