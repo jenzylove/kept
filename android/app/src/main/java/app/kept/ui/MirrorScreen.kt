@@ -85,7 +85,7 @@ fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: Stri
                 Text("We read ${r.scanned} transactions and found no sell with a known cost in this window.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
             } else {
                 Text("${fmtSol(m.won, 2)} SOL", style = MaterialTheme.typography.displayLarge, color = c.bone)
-                Text("won on ${m.wins.size} winning sells", style = MaterialTheme.typography.bodyLarge, color = c.dim)
+                Text("won on ${m.wins.size} winning ${if (m.wins.size == 1) "sell" else "sells"}", style = MaterialTheme.typography.bodyLarge, color = c.dim)
                 Spacer(Modifier.height(22.dp))
                 Staircase(series.wallet, series.kept, height = 150.dp)
                 Spacer(Modifier.height(8.dp))
@@ -94,7 +94,7 @@ fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: Stri
                     Legend(c.brass, "Kept at 50%")
                 }
                 Spacer(Modifier.height(26.dp))
-                StatRow("Gave back on ${m.losses.size} losing sells", "−${fmtSol(m.givenBack, 2)} SOL", valueColor = c.loss)
+                StatRow("Gave back on ${m.losses.size} losing ${if (m.losses.size == 1) "sell" else "sells"}", "−${fmtSol(m.givenBack, 2)} SOL", valueColor = c.loss)
                 StatRow("In your vault, if Kept had been on", "${fmtSol(m.wouldHaveKept, 2)} SOL", valueColor = c.brass)
                 if (m.unpriced > 0) StatRow("Sells with no known cost (not counted)", "${m.unpriced}")
                 Spacer(Modifier.height(10.dp))

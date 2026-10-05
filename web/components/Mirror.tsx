@@ -98,14 +98,14 @@ export function Mirror({ initial = '' }: { initial?: string }) {
           ) : (
             <>
               <div className="big mono" style={{ marginTop: 14, fontFamily: 'var(--display)' }}>{sol(result.won)} SOL</div>
-              <p className="dim" style={{ marginTop: 8 }}>won on {result.wins.length} winning sells</p>
+              <p className="dim" style={{ marginTop: 8 }}>won on {result.wins.length} winning {result.wins.length === 1 ? 'sell' : 'sells'}</p>
               <div style={{ margin: '32px 0 10px' }}><Staircase wallet={result.wallet} kept={result.keptSeries} /></div>
               <p className="label" style={{ display: 'flex', gap: 22 }}>
                 <span><i style={{ display: 'inline-block', width: 14, height: 3, background: 'var(--loss)', marginRight: 8, verticalAlign: 'middle' }} />Wallet profit</span>
                 <span><i style={{ display: 'inline-block', width: 14, height: 3, background: 'var(--brass)', marginRight: 8, verticalAlign: 'middle' }} />Kept at 50%</span>
               </p>
               <div style={{ marginTop: 28 }}>
-                <div className="stat"><span>Gave back on {result.losses.length} losing sells</span><span className="mono loss">−{sol(result.givenBack)} SOL</span></div>
+                <div className="stat"><span>Gave back on {result.losses.length} losing {result.losses.length === 1 ? 'sell' : 'sells'}</span><span className="mono loss">−{sol(result.givenBack)} SOL</span></div>
                 <div className="stat"><span>In your vault, if Kept had been on</span><span className="mono brass">{sol(result.kept)} SOL</span></div>
                 {result.unpriced > 0 && <div className="stat"><span>Sells with no known cost (not counted)</span><span className="mono">{result.unpriced}</span></div>}
               </div>

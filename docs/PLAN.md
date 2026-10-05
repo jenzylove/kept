@@ -40,7 +40,7 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 | # | Task | Proof | Done |
 |---|---|---|---|
 | 3.1 | Compose app shell, builds a debug APK, runs on emulator | 13 MB debug APK built; running on a Pixel 7 emulator (API 35); screenshots `ratchet-launch/shots/app-1-front.png`, `app-2-connect.png` | [x] |
-| 3.2 | Mirror screen: paste wallet → real numbers, each win links to its tx | screenshot with a real wallet | [ ] |
+| 3.2 | Mirror screen: paste wallet → real numbers, each win links to its tx | in the app on the emulator: the trading wallet read from devnet history shows the real 0.03 SOL win; `app-11-mirror.png`. A busy mainnet wallet is still to be read in the app (the web Mirror already reads one in 14 s) | [x] |
 | 3.3 | Connect main wallet over MWA (emulator with a test wallet app) | screenshot + connected address | [ ] |
 | 3.4 | Trading wallet: generated on device, encrypted with Keystore, export for Phantom | created in the app (`6DM4VxoB...`), key sealed with an Android Keystore AES key (`TradingKeyTest` 5 of 5), reveal dialog returns the key (debug build skips the lock screen check); `app-3b-funded.png` | [x] |
 | 3.5 | Create vault from the app (main wallet signs) | devnet, debug wallet: [InitVault](https://explorer.solana.com/tx/4xNvty53dxvfCQVEPcW2QanzMhsk6tjbGiMQMY5DJZUmSFQDz1UAyNnvwTe88bLSMDX1NsGQuoiUcaD5yRxbsxEB?cluster=devnet) sent by the app; `app-5-home.png`. Real Mobile Wallet Adapter wallet still to be tested | [x] |
@@ -48,7 +48,7 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 | 3.7 | Reflex foreground service: detects sell, banks profit share, local notification | devnet, emulator: real [buy](https://explorer.solana.com/tx/2ZaRzSeMH8ff9zHcp3vC9CiD3mmjQc6B5zxTmjcTDgZdnxMkXn3Z69FgQ7BzrtwuXhkhGLWvK2jfsc82m4yTkivf?cluster=devnet) then profitable [sell](https://explorer.solana.com/tx/2RBcok8YSjjy4w3ShwXZB7ntpaz4x5nm6cM6ZLrJLyJjCh3KvQ9rY5czSPCkb5nwF4fu5snbeQvPdxmcJAoNvZZj?cluster=devnet) on the trading wallet; the app banked 0.015 SOL (50% of 0.03 profit) with no tap: [bank](https://explorer.solana.com/tx/51c68eGZZkARzo2vDJjaFg3EKYHbHNV2a71D1ge5VVT4kibEGvi3sBuaXVB75e2o3xcU1WdpEzdT8bfh4nkm4ADn?cluster=devnet) landed 11 slots (about 2 s) after the sell; receipt `app-6-banked.png`. To repeat on mainnet in phase 7 | [x] |
 | 3.8 | Catch-up after restart: missed sells banked and labelled late | test + log | [ ] |
 | 3.9 | In-app swap (Jupiter) | buy + sell tx links from the app | [ ] |
-| 3.10 | Vault screen: balance, bank history, withdraw request, countdown, cancel | screenshot + tx links | [ ] |
+| 3.10 | Vault screen: balance, bank history, withdraw request, countdown, cancel | on the emulator, devnet: vault 0.0165 SOL after the bank; request 0.005 SOL, countdown (`app-8-pending.png`), unlock, take out (vault 0.0115, `app-10-withdrawn.png`); a second request cancelled in the app | [x] |
 | 3.11 | SKR tier: live SKR balance check, rules unlocked; bank into staked SKR | stake tx where user = vault PDA | [ ] |
 | 3.12 | Monthly card (share image) | image file | [ ] |
 
