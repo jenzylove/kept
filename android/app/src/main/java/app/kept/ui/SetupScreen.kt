@@ -65,6 +65,17 @@ fun SetupScreen(vm: AppViewModel, s: AppState) {
         }
         Spacer(Modifier.height(28.dp))
 
+        if (step > 1 && s.mainWallet != null) {
+            val ctx = LocalContext.current
+            Label("Connected wallet")
+            Spacer(Modifier.height(4.dp))
+            Text(
+                s.mainWallet, style = MaterialTheme.typography.bodyMedium.merge(NumberStyle), color = c.dim,
+                modifier = Modifier.clickable { copyToClipboard(ctx, "Wallet", s.mainWallet) },
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+
         when (step) {
             1 -> ConnectStep(vm, s)
             2 -> TradingStep(vm, s) { tradingConfirmed = true }

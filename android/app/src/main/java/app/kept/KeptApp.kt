@@ -29,8 +29,8 @@ class KeptApp : Application() {
         )
     }
 
-    /** The websocket twin of the RPC url (https to wss), unless one is configured. */
-    val wsUrl: String get() = BuildConfig.RPC_URL.replaceFirst("https://", "wss://").replaceFirst("http://", "ws://")
+    /** Websocket used only as a nudge that something happened; it carries no key. */
+    val wsUrl: String get() = BuildConfig.WS_URL
 
     companion object {
         const val CHANNEL_WATCH = "watch"

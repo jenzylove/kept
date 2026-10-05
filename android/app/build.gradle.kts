@@ -25,6 +25,10 @@ android {
         versionName = "1.0.0"
         // The RPC endpoint the app talks to. Release builds point at our proxy, never at a key.
         buildConfigField("String", "RPC_URL", "\"${local.getProperty("kept.rpc", "https://api.mainnet-beta.solana.com")}\"")
+        // Websocket for the "something happened in your wallet" nudge. It carries no key, so the public
+        // endpoint is fine; the reflex also polls through the proxy, so a missed nudge costs seconds.
+        val cluster = local.getProperty("kept.cluster", "mainnet-beta")
+        buildConfigField("String", "WS_URL", "\"${local.getProperty("kept.ws", if (cluster == "mainnet-beta") "wss://api.mainnet-beta.solana.com" else "wss://api.devnet.solana.com")}\"")
         buildConfigField("String", "CLUSTER", "\"${local.getProperty("kept.cluster", "mainnet-beta")}\"")
         // Emulator testing only: a software main wallet instead of a wallet app. Ignored in release builds.
         buildConfigField("boolean", "DEBUG_WALLET", local.getProperty("kept.debugWallet", "false"))

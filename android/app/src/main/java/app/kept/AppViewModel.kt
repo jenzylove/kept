@@ -69,10 +69,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { while (true) { delay(4_000); tick() } }
     }
 
+    private var ticks = 0
+
     private fun tick() {
         val log = kept.reflexStore.load().log
         _state.update { it.copy(nowSec = System.currentTimeMillis() / 1000, log = log) }
-        if (log.size != homeLogSize) { homeLogSize = log.size; loadHomeMirror() }
+        ticks++
+        if (log.size != homeLogSize) {
+            // a bank just landed: refresh the vault total and the chart right away
+            homeLogSize = log.size
+            loadHomeMirror()
+            refresh()
+        } else if (ticks % 6 == 0) {
+            refresh() // every ~24 s, so a withdrawal unlocking or a bank from another phone shows up
+        }
     }
 
     private fun loadHomeMirror() {
@@ -158,12 +168,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val w = wallet ?: error("Wallet not ready")
         val pk = w.connect()
         kept.prefs.mainWallet = pk.toBase58()
+        if (BuildConfig.DEBUG) android.util.Log.i("KeptDebug", "main=${pk.toBase58()}")
         _state.update { it.copy(mainWallet = pk.toBase58()) }
         refresh()
     }
 
     fun createTradingWallet() = work("Creating your trading wallet…") {
         if (!kept.tradingKey.exists()) kept.tradingKey.create()
+        if (BuildConfig.DEBUG) android.util.Log.i("KeptDebug", "trading=${kept.tradingKey.load()?.publicKey?.toBase58()}")
         refresh()
     }
 

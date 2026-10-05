@@ -39,13 +39,13 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 3.1 | Compose app shell, builds a debug APK, runs on emulator | screenshot `docs/shots/3.1.png` | [ ] |
+| 3.1 | Compose app shell, builds a debug APK, runs on emulator | 13 MB debug APK built; running on a Pixel 7 emulator (API 35); screenshots `ratchet-launch/shots/app-1-front.png`, `app-2-connect.png` | [x] |
 | 3.2 | Mirror screen: paste wallet → real numbers, each win links to its tx | screenshot with a real wallet | [ ] |
 | 3.3 | Connect main wallet over MWA (emulator with a test wallet app) | screenshot + connected address | [ ] |
-| 3.4 | Trading wallet: generated on device, encrypted with Keystore, export for Phantom | code path in README; screenshot | [ ] |
-| 3.5 | Create vault from the app (main wallet signs) | init tx link from the app | [ ] |
-| 3.6 | Fund trading wallet from main wallet | tx link | [ ] |
-| 3.7 | Reflex foreground service: detects sell, banks profit share, local notification | mainnet bank tx made by the app + notification screenshot | [ ] |
+| 3.4 | Trading wallet: generated on device, encrypted with Keystore, export for Phantom | created in the app (`6DM4VxoB...`), key sealed with an Android Keystore AES key (`TradingKeyTest` 5 of 5), reveal dialog returns the key (debug build skips the lock screen check); `app-3b-funded.png` | [x] |
+| 3.5 | Create vault from the app (main wallet signs) | devnet, debug wallet: [InitVault](https://explorer.solana.com/tx/4xNvty53dxvfCQVEPcW2QanzMhsk6tjbGiMQMY5DJZUmSFQDz1UAyNnvwTe88bLSMDX1NsGQuoiUcaD5yRxbsxEB?cluster=devnet) sent by the app; `app-5-home.png`. Real Mobile Wallet Adapter wallet still to be tested | [x] |
+| 3.6 | Fund trading wallet from main wallet | devnet: [0.1 SOL transfer](https://explorer.solana.com/tx/53fjrrUkpP9YoVm7YDHf2eWPNz7KhWFCzCaQofqy1W5kqQXtEn1S6sR5mueWHXQYNfHfBvMD5JUD5sBtKwbbj2im?cluster=devnet) sent from the app; `app-3b-funded.png` | [x] |
+| 3.7 | Reflex foreground service: detects sell, banks profit share, local notification | devnet, emulator: real [buy](https://explorer.solana.com/tx/2ZaRzSeMH8ff9zHcp3vC9CiD3mmjQc6B5zxTmjcTDgZdnxMkXn3Z69FgQ7BzrtwuXhkhGLWvK2jfsc82m4yTkivf?cluster=devnet) then profitable [sell](https://explorer.solana.com/tx/2RBcok8YSjjy4w3ShwXZB7ntpaz4x5nm6cM6ZLrJLyJjCh3KvQ9rY5czSPCkb5nwF4fu5snbeQvPdxmcJAoNvZZj?cluster=devnet) on the trading wallet; the app banked 0.015 SOL (50% of 0.03 profit) with no tap: [bank](https://explorer.solana.com/tx/51c68eGZZkARzo2vDJjaFg3EKYHbHNV2a71D1ge5VVT4kibEGvi3sBuaXVB75e2o3xcU1WdpEzdT8bfh4nkm4ADn?cluster=devnet) landed 11 slots (about 2 s) after the sell; receipt `app-6-banked.png`. To repeat on mainnet in phase 7 | [x] |
 | 3.8 | Catch-up after restart: missed sells banked and labelled late | test + log | [ ] |
 | 3.9 | In-app swap (Jupiter) | buy + sell tx links from the app | [ ] |
 | 3.10 | Vault screen: balance, bank history, withdraw request, countdown, cancel | screenshot + tx links | [ ] |
