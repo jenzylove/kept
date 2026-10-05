@@ -1,0 +1,9 @@
+{
+  "name": "@kept/engine",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/engine.js",
+  "scripts": {
+    "test": "node --test"
+  }
+}

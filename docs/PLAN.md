@@ -17,21 +17,21 @@ Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 1.1 | Anchor workspace `programs/kept_vault`, builds in WSL | `anchor build` output in BUILD_LOG | [ ] |
-| 1.2 | `init_vault`, `bank` (banker signs, emits `Banked`) | test `bank moves SOL and logs` | [ ] |
-| 1.3 | `request_withdraw` / `cancel_withdraw` / `execute_withdraw` with cooldown | test `withdraw before unlock fails`, `cancel clears`, `after unlock pays` | [ ] |
-| 1.4 | Only owner can withdraw; banker can only deposit | test `banker cannot withdraw`, `stranger cannot withdraw` | [ ] |
-| 1.5 | `set_rules`: cooldown decrease delayed, increase instant | test `lowering cooldown cannot skip wait` | [ ] |
-| 1.6 | SKR: stake owned by vault PDA; `unstake`/`withdraw` CPI only after cooldown | test against cloned SKR program on localnet | [ ] |
-| 1.7 | Deploy to mainnet | program id + Solscan link | [ ] |
-| 1.8 | Mainnet: init vault, one real bank, one failed early withdraw | 3 tx links | [ ] |
+| 1.1 | Anchor workspace `programs/kept_vault`, builds in WSL | `anchor build --arch v0` finished; program id `EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK`; IDL at `programs/kept_vault/idl.json` | [x] |
+| 1.2 | `init_vault`, `bank` (banker signs, emits `Banked`) | tests `bank_moves_sol_into_the_vault_and_logs_it`, `init_rejects_a_cooldown_under_one_minute_and_a_bad_share` | [x] |
+| 1.3 | `request_withdraw` / `cancel_withdraw` / `execute_withdraw_sol` with cooldown | tests `withdraw_before_unlock_fails_and_after_unlock_pays_the_requested_address`, `cancel_clears_a_pending_withdrawal`, `a_withdrawal_cannot_dig_into_the_rent_the_vault_needs` | [x] |
+| 1.4 | Only owner can withdraw; banker can only deposit | tests `the_banker_and_strangers_cannot_withdraw`, `only_the_banker_can_bank`, `withdrawals_can_only_go_to_the_owner_or_the_trading_wallet`, `only_the_owner_can_change_rules` | [x] |
+| 1.5 | `set_rules`: cooldown decrease delayed, increase instant | test `lowering_the_cooldown_cannot_skip_the_wait_and_raising_it_is_instant` | [x] |
+| 1.6 | SKR: stake owned by vault PDA; `unstake`/`withdraw` CPI only after cooldown | LiteSVM test with the mainnet SKR program + accounts dumped into the simulator | [ ] |
+| 1.7 | Deploy to devnet first (mainnet last, after the app works) | program id + Solscan devnet link | [ ] |
+| 1.8 | Devnet: init vault, one bank, one failed early withdraw | 3 tx links | [ ] |
 
 ## Phase 2. Profit engine (Oct 5)
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 2.1 | Test vectors: 10 real transactions (buys, sells, multi-token, v1 tx) with expected deltas | `engine/vectors.json` | [ ] |
-| 2.2 | TypeScript engine passes vectors | `npm test` output | [ ] |
+| 2.1 | Test vectors: 10+ real transactions with expected deltas from an independent parser (Helius) | `engine/vectors.json` (15 vectors: legacy and v0 transactions) | [x] |
+| 2.2 | TypeScript engine passes vectors | `cd engine && npm test`: 7 pass, 0 fail | [x] |
 | 2.3 | Kotlin engine passes the same vectors | `gradlew test` output | [ ] |
 | 2.4 | One mirror win hand-checked against Solscan | note + link in BUILD_LOG | [ ] |
 

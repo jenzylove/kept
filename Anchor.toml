@@ -1,0 +1,18 @@
+[toolchain]
+anchor_version = "1.2.0"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+kept_vault = "EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK"
+
+[programs.localnet]
+kept_vault = "11111111111111111111111111111111"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[hooks]

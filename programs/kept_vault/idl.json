@@ -1,0 +1,912 @@
+{
+  "address": "EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK",
+  "metadata": {
+    "name": "kept_vault",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "bank",
+      "docs": [
+        "Banker moves SOL from the trading wallet into the vault. `sell_sig` ties the bank to the sell."
+      ],
+      "discriminator": [
+        52,
+        72,
+        158,
+        163,
+        169,
+        184,
+        2,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "banker",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "profit",
+          "type": "u64"
+        },
+        {
+          "name": "sell_sig",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "cancel_withdraw",
+      "discriminator": [
+        112,
+        53,
+        226,
+        58,
+        158,
+        30,
+        37,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_unstake_skr",
+      "docs": [
+        "After the cooldown, unstake the vault's SKR shares (the SKR program then runs its own unstake",
+        "period). The tokens that come back can be released to the owner with `release_skr`."
+      ],
+      "discriminator": [
+        162,
+        31,
+        91,
+        12,
+        62,
+        41,
+        91,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_stake",
+          "writable": true
+        },
+        {
+          "name": "stake_config",
+          "writable": true
+        },
+        {
+          "name": "guardian_pool",
+          "writable": true
+        },
+        {
+          "name": "stake_vault"
+        },
+        {
+          "name": "mint",
+          "address": "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "skr_program",
+          "address": "SKRskrmtL83pcL4YqLWt6iPefDqwXQWHSw9S9vz94BZ"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "execute_withdraw_sol",
+      "docs": [
+        "After the cooldown, anyone can execute a SOL withdrawal; it can only pay the requested address."
+      ],
+      "discriminator": [
+        131,
+        194,
+        1,
+        209,
+        239,
+        229,
+        0,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.owner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_vault",
+      "discriminator": [
+        77,
+        79,
+        85,
+        150,
+        33,
+        217,
+        52,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "banker",
+          "type": "pubkey"
+        },
+        {
+          "name": "cooldown_secs",
+          "type": "i64"
+        },
+        {
+          "name": "bank_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "release_skr",
+      "docs": [
+        "Release SKR sitting in the vault's token account to the owner.",
+        "Allowed only for SKR that came out through an approved unstake, or a liquid-SKR withdrawal",
+        "whose cooldown has passed."
+      ],
+      "discriminator": [
+        148,
+        56,
+        88,
+        16,
+        3,
+        191,
+        136,
+        249
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_skr",
+          "writable": true
+        },
+        {
+          "name": "owner_skr",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "request_withdraw",
+      "docs": [
+        "Owner asks to take money out. Nothing moves until the cooldown has passed."
+      ],
+      "discriminator": [
+        137,
+        95,
+        187,
+        96,
+        250,
+        138,
+        31,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "asset",
+          "type": {
+            "defined": {
+              "name": "Asset"
+            }
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "to",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_rules",
+      "docs": [
+        "Owner changes rules. A longer cooldown applies now; a shorter one only after the current",
+        "cooldown has passed, so it can't be used to skip the wait."
+      ],
+      "discriminator": [
+        66,
+        148,
+        196,
+        43,
+        232,
+        210,
+        174,
+        169
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "cooldown_secs",
+          "type": "i64"
+        },
+        {
+          "name": "bank_bps",
+          "type": "u16"
+        },
+        {
+          "name": "banker",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "Banked",
+      "discriminator": [
+        197,
+        50,
+        53,
+        56,
+        15,
+        127,
+        170,
+        67
+      ]
+    },
+    {
+      "name": "RulesChanged",
+      "discriminator": [
+        246,
+        127,
+        52,
+        2,
+        91,
+        27,
+        175,
+        157
+      ]
+    },
+    {
+      "name": "VaultOpened",
+      "discriminator": [
+        198,
+        250,
+        195,
+        25,
+        26,
+        107,
+        197,
+        16
+      ]
+    },
+    {
+      "name": "WithdrawCancelled",
+      "discriminator": [
+        162,
+        153,
+        181,
+        47,
+        154,
+        132,
+        183,
+        117
+      ]
+    },
+    {
+      "name": "WithdrawExecuted",
+      "discriminator": [
+        132,
+        197,
+        103,
+        54,
+        18,
+        141,
+        117,
+        0
+      ]
+    },
+    {
+      "name": "WithdrawRequested",
+      "discriminator": [
+        114,
+        16,
+        240,
+        206,
+        93,
+        128,
+        151,
+        39
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "BadCooldown",
+      "msg": "Cooldown must be between 1 minute and 30 days"
+    },
+    {
+      "code": 6001,
+      "name": "BadShare",
+      "msg": "Bank share must be between 0.01% and 100%"
+    },
+    {
+      "code": 6002,
+      "name": "ZeroAmount",
+      "msg": "Amount must be more than zero"
+    },
+    {
+      "code": 6003,
+      "name": "NotBanker",
+      "msg": "Only the vault's banker can bank"
+    },
+    {
+      "code": 6004,
+      "name": "NotOwner",
+      "msg": "Only the vault's owner can do this"
+    },
+    {
+      "code": 6005,
+      "name": "WithdrawPending",
+      "msg": "A withdrawal is already pending; cancel it first"
+    },
+    {
+      "code": 6006,
+      "name": "NothingPending",
+      "msg": "No withdrawal is pending"
+    },
+    {
+      "code": 6007,
+      "name": "StillCooling",
+      "msg": "Still cooling down"
+    },
+    {
+      "code": 6008,
+      "name": "BadDestination",
+      "msg": "Money can only go to the owner or the trading wallet"
+    },
+    {
+      "code": 6009,
+      "name": "NotEnough",
+      "msg": "Not enough in the vault"
+    },
+    {
+      "code": 6010,
+      "name": "Overflow",
+      "msg": "Overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Asset",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Sol"
+          },
+          {
+            "name": "Skr"
+          },
+          {
+            "name": "StakedSkr"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Banked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "profit",
+            "type": "u64"
+          },
+          {
+            "name": "sell_sig",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "total_banked",
+            "type": "u64"
+          },
+          {
+            "name": "bank_count",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RulesChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "cooldown_secs",
+            "type": "i64"
+          },
+          {
+            "name": "pending_cooldown_secs",
+            "type": "i64"
+          },
+          {
+            "name": "pending_cooldown_at",
+            "type": "i64"
+          },
+          {
+            "name": "bank_bps",
+            "type": "u16"
+          },
+          {
+            "name": "banker",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "banker",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "cooldown_secs",
+            "type": "i64"
+          },
+          {
+            "name": "pending_cooldown_secs",
+            "type": "i64"
+          },
+          {
+            "name": "pending_cooldown_at",
+            "type": "i64"
+          },
+          {
+            "name": "bank_bps",
+            "type": "u16"
+          },
+          {
+            "name": "total_banked",
+            "type": "u64"
+          },
+          {
+            "name": "total_withdrawn",
+            "type": "u64"
+          },
+          {
+            "name": "bank_count",
+            "type": "u64"
+          },
+          {
+            "name": "withdraw_asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "withdraw_amount",
+            "type": "u64"
+          },
+          {
+            "name": "withdraw_to",
+            "type": "pubkey"
+          },
+          {
+            "name": "withdraw_unlock_at",
+            "type": "i64"
+          },
+          {
+            "name": "skr_unstake_approved",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "banker",
+            "type": "pubkey"
+          },
+          {
+            "name": "cooldown_secs",
+            "type": "i64"
+          },
+          {
+            "name": "bank_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawRequested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": {
+              "defined": {
+                "name": "Asset"
+              }
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "to",
+            "type": "pubkey"
+          },
+          {
+            "name": "unlock_at",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}
