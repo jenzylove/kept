@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Mark } from '@/components/Mark';
-import { CLUSTER, VAULT_PROGRAM, solscan } from '@/lib/config';
+import { APK_URL, CLUSTER, VAULT_PROGRAM, solscan } from '@/lib/config';
 
 export const metadata = { title: 'Judges: five minutes, no keys' };
 
@@ -20,6 +20,11 @@ export default function Judges() {
           <p className="dim" style={{ margin: '24px 0 40px' }}>
             Everything below works without an account. The first step needs only a browser. The rest needs an Android phone or emulator.
           </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
+            <a className="btn" href={APK_URL}>Download APK</a>
+            <a className="btn ghost" href="https://github.com/jenzylove/kept">Source</a>
+            <Link className="btn ghost" href="/proof">Live proof</Link>
+          </div>
 
           <div className="steps">
             <div>

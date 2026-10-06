@@ -4,7 +4,7 @@
 !.env.example
 *.keypair.json
 id.json
-**/keys/
+# Never ignore source packages named "keys". Android runtime keys live in app-private storage.
 *.jks
 *.keystore
 local.properties
@@ -15,6 +15,7 @@ target/
 test-ledger/
 build/
 .gradle/
+**/.kotlin/
 app/build/
 *.apk
 *.aab

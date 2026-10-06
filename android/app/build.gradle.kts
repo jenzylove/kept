@@ -26,15 +26,16 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+        val cluster = cfg("kept.cluster", "mainnet-beta")
+        val proxyCluster = if (cluster == "mainnet-beta") "mainnet" else "devnet"
         // The RPC endpoint the app talks to. Release builds point at our proxy, never at a key.
-        buildConfigField("String", "RPC_URL", "\"${cfg("kept.rpc", "https://api.mainnet-beta.solana.com")}\"")
+        buildConfigField("String", "RPC_URL", "\"${cfg("kept.rpc", "https://kept-seeker.vercel.app/api/rpc?c=$proxyCluster")}\"")
         // Websocket for the "something happened in your wallet" nudge. It carries no key, so the public
         // endpoint is fine; the reflex also polls through the proxy, so a missed nudge costs seconds.
-        val cluster = cfg("kept.cluster", "mainnet-beta")
         buildConfigField("String", "WS_URL", "\"${cfg("kept.ws", if (cluster == "mainnet-beta") "wss://api.mainnet-beta.solana.com" else "wss://api.devnet.solana.com")}\"")
         // Bulk wallet history for the Mirror (our proxy holds the API key). Empty means read over plain RPC.
-        buildConfigField("String", "HISTORY_URL", "\"${cfg("kept.history", "")}\"")
-        buildConfigField("String", "CLUSTER", "\"${local.getProperty("kept.cluster", "mainnet-beta")}\"")
+        buildConfigField("String", "HISTORY_URL", "\"${cfg("kept.history", "https://kept-seeker.vercel.app/api/history?c=$proxyCluster")}\"")
+        buildConfigField("String", "CLUSTER", "\"$cluster\"")
         // Emulator testing only: a software main wallet instead of a wallet app. Ignored in release builds.
         buildConfigField("boolean", "DEBUG_WALLET", cfg("kept.debugWallet", "false"))
         buildConfigField("String", "VAULT_PROGRAM", "\"${cfg("kept.program", "EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK")}\"")

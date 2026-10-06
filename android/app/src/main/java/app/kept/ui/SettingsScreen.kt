@@ -101,7 +101,7 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
 
         Label("Your trading wallet key")
         Text(
-            "The key was made on this phone and sealed in its secure hardware. You can reveal it to import the wallet into another app. Anyone with it can move the money in the trading wallet, so keep it private.",
+            "The key was made on this phone and sealed by Android Keystore. You can reveal it to import the wallet into another app. Anyone with it can move the money in the trading wallet, so keep it private.",
             style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
         )
         KeptGhostButton("Reveal key (needs your fingerprint or PIN)", { onExport { exported = it } })

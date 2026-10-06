@@ -110,7 +110,7 @@ private fun TradingStep(vm: AppViewModel, s: AppState, onContinue: () -> Unit) {
     Text("Make your trading wallet.", style = MaterialTheme.typography.displayMedium, color = c.bone)
     Spacer(Modifier.height(14.dp))
     Text(
-        "A new wallet created on this phone. Its key is sealed in the phone's secure hardware and never leaves it. Trade with it anywhere: in Kept, or import it into Phantom. Kept watches it and banks part of every win.",
+        "A new wallet created on this phone. Its key is sealed by Android Keystore and never leaves unless you reveal it. Trade with it anywhere: in Kept, or import it into Phantom. Kept watches it and banks part of every win.",
         style = MaterialTheme.typography.bodyLarge, color = c.dim,
     )
     Spacer(Modifier.height(28.dp))

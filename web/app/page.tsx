@@ -37,7 +37,7 @@ export default function Home() {
             <div>
               <div>
                 <h3>Trade the way you already do.</h3>
-                <p>Kept makes a trading wallet on your phone. Its key stays sealed in the phone’s secure hardware and never leaves it. Trade in Kept, or import the wallet into Phantom.</p>
+                <p>Kept makes a trading wallet on your phone. Its key stays sealed by Android Keystore and never leaves unless you explicitly reveal it. Trade in Kept, or import the wallet into Phantom.</p>
               </div>
             </div>
             <div>
@@ -68,7 +68,7 @@ export default function Home() {
             <div className="label" style={{ marginBottom: 18 }}>Built on Seeker</div>
             <h2>Your vault belongs to your Seed Vault.</h2>
             <p className="dim" style={{ marginTop: 20 }}>
-              The vault is owned by your main wallet. On a Seeker, a double tap on the Seed Vault confirms anything that moves your money out. The trading key sits in the phone’s hardware keystore and can do exactly one thing: pay your vault. The program rejects any other destination.
+              The vault is owned by your main wallet. On a Seeker, a double tap on the Seed Vault confirms anything that moves your money out. The trading key is sealed by Android Keystore. Kept’s bank instruction can only pay your vault, and the program rejects any other destination.
             </p>
           </div>
         </section>
