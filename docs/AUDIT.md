@@ -8,7 +8,7 @@
 
 ## Decision
 
-**Hold the final submission, continue shipping.** The core product is real and substantially implemented, but the submission still fails several hard delivery gates: no signed release APK, no public APK URL, the repository is private, physical-phone execution has not been recorded, and the demo video, deck, and Align submission are absent.
+**Hold the final submission, continue shipping.** The core product is real and substantially implemented, but the submission still fails several hard delivery gates: no signed release APK, no public APK URL, the repository is private, physical-phone vault execution is not complete, and the demo video, deck, and Align submission are absent.
 
 The build-agent credit reset is not a coding blocker. The remaining engineering work can be completed here. Release signing, phone interaction, profile completion, and final submission require the owner's existing credentials or direct actions.
 
@@ -18,10 +18,10 @@ The pull-request Vercel preview is currently red even though both the working tr
 
 | Area | Result | Evidence |
 |---|---|---|
-| Android unit tests | Pass, 44/44 | `:app:testDebugUnitTest` |
+| Android unit tests | Pass, 45/45 | `:app:testDebugUnitTest` |
 | Android debug build | Pass | `:app:assembleDebug` |
 | Android release build | Pass, unsigned | `:app:assembleRelease` |
-| Devnet phone-test APK | Built and signature-verified | SHA-256 `4654bd981845267e03c7d4424a52ae71ed68671cce5d8bf0ae8ebaabc672d995` |
+| Devnet phone-test APK | Built and signature-verified | SHA-256 `42e6ed2819dfb4392950d92072b4e0f13e17931723ba11b7b47b7236b68d5cbe` |
 | Engine tests | Pass, 10/10 | `engine/npm test` |
 | Web tests | Pass, 4/4 | `web/npm test` |
 | Web production build | Pass | `web/npm run build` |
@@ -45,9 +45,9 @@ The pull-request Vercel preview is currently red even though both the working tr
    - GitHub reports `jenzylove/kept` as private.
    - The event requires accessible source.
 
-3. **Physical-device requirement is unproven**
-   - Emulator and MWA reference-wallet evidence exists.
-   - No current proof shows this checkout running on the user's Android phone or a Seeker.
+3. **Physical-device vault flow is incomplete**
+   - The APK now has real-phone evidence for installation, launch, MWA connection, and Android-Keystore trading-wallet creation.
+   - Vault creation is not complete. The connected owner wallet had zero devnet SOL, and transaction simulation reproduced `AccountNotFound`.
 
 4. **Submission media and form are absent**
    - No final video of three minutes or less.
@@ -108,14 +108,20 @@ The pull-request Vercel preview is currently red even though both the working tr
     - Ambiguous SOL attempts and every failed SKR attempt remain blocked for explicit chain reconciliation.
     - Regression tests cover safe restart retry, ambiguous submission suppression, and SKR non-retry.
 
+16. **Vault setup launched a transaction that was guaranteed to fail**
+    - Real-phone testing exposed a wallet simulation warning during vault creation.
+    - The connected owner had zero devnet SOL. A direct simulation of the same owner, banker, program, and vault PDA returned `AccountNotFound`.
+    - Kept now checks the current rent and owner balance before opening MWA, then shows the required network balance inside the app.
+    - The account-size and shortfall calculation are covered by the real devnet vault fixture.
+
 ## Requirement matrix
 
 | Requirement | Status | Next proof |
 |---|---|---|
-| Mobile-first Android app | Implemented and emulator-tested | Record on physical Android |
+| Mobile-first Android app | Installed and launched on physical Android | Complete the vault and banking loop |
 | Functional APK | Debug devnet APK verified | Sign release APK and test install |
 | Solana Mobile Stack | Implemented | Include MWA flow in video |
-| Mobile Wallet Adapter | Implemented and previously exercised with reference wallet | Run with Phantom or Solflare on phone |
+| Mobile Wallet Adapter | Connected successfully on physical Android | Complete a signed vault transaction |
 | Meaningful Solana interaction | Devnet vault and bank evidence exists | Reproduce from current phone build |
 | Direct APK URL | Missing | Publish `kept.apk` as a release asset |
 | Public source repository | Missing | Make repository public after final secret scan |
@@ -153,7 +159,7 @@ The pull-request Vercel preview is currently red even though both the working tr
 ## Owner input required
 
 - Confirm whether the previous Windows workspace still contains `android/local.properties` and the release `.jks` or `.keystore` file.
-- Install and test `artifacts/kept-devnet-debug.apk` on the available Android phone.
+- Fund the connected owner with devnet SOL, install the refreshed `artifacts/kept-devnet-debug.apk`, and complete vault creation.
 - Provide access to the Align account when final submission is ready.
 - Confirm before making the private repository public or publishing a GitHub release.
 

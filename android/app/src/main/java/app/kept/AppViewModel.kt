@@ -219,6 +219,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val trading = kept.tradingKey.load()?.publicKey ?: error("Create the trading wallet first")
+        val balance = rpc.balance(main.toBase58())
+        val rent = rpc.minimumBalanceForRentExemption(VaultProgram.VAULT_ACCOUNT_SIZE)
+        val shortfall = VaultProgram.vaultOpenShortfall(balance, rent)
+        require(shortfall == 0L) {
+            val network = if (BuildConfig.CLUSTER == "devnet") "devnet " else ""
+            "Your connected wallet needs at least ${"%.4f".format(java.util.Locale.US, (rent + 5_000L) / 1_000_000_000.0)} ${network}SOL to open the vault. Its current ${network}balance is ${"%.4f".format(java.util.Locale.US, balance / 1_000_000_000.0)} SOL."
+        }
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.initVault(main, trading, cooldownSecs, bankBps)))
         val sig = w.signAndSend(tx)
         _state.update { it.copy(busy = "Waiting for the network…") }

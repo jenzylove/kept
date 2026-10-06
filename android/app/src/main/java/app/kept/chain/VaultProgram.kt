@@ -155,6 +155,12 @@ class VaultProgram(programId: String) {
     companion object {
         val SYSTEM_PROGRAM = PublicKey("11111111111111111111111111111111")
         private val VAULT_SEED = "vault".toByteArray()
+        /** Eight-byte discriminator plus the current Anchor Vault account fields. */
+        const val VAULT_ACCOUNT_SIZE = 173
+        private const val OPEN_FEE_LAMPORTS = 5_000L
+
+        fun vaultOpenShortfall(balance: Long, rent: Long): Long =
+            (rent + OPEN_FEE_LAMPORTS - balance).coerceAtLeast(0)
 
         fun transfer(from: PublicKey, to: PublicKey, lamports: Long): Instruction = TransferInstruction(from, to, lamports)
 

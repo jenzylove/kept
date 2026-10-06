@@ -125,6 +125,10 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         return r["value"]!!.jsonPrimitive.long()
     }
 
+    suspend fun minimumBalanceForRentExemption(accountSize: Int): Long =
+        call("getMinimumBalanceForRentExemption", buildJsonArray { add(JsonPrimitive(accountSize)) })
+            .jsonPrimitive.long()
+
     /** Raw account data, or null if the account doesn't exist. */
     suspend fun accountData(address: String): ByteArray? {
         val cfg = buildJsonObject { put("encoding", "base64"); put("commitment", "confirmed") }
