@@ -10,6 +10,7 @@ import app.kept.reflex.BankEntry
 import app.kept.reflex.WatcherService
 import app.kept.trade.Jupiter
 import app.kept.wallet.MainWallet
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.sol4k.PublicKey
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** The vault's SKR: staked shares, SKR already unstaking inside SKR's own period, and SKR waiting in the vault. */
 data class SkrPosition(
@@ -75,8 +77,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var wallet: MainWallet? = null
 
     private val jupiter = Jupiter()
+    private val operationActive = AtomicBoolean(false)
 
     init {
+        // SKR banking is disabled until the swap/stake path can prove it never captures unrelated
+        // SKR already held by the trading wallet.
+        if (kept.prefs.bankAsset != "sol") kept.prefs.bankAsset = "sol"
         _state.update { it.copy(mainWallet = kept.prefs.mainWallet, tradingWallet = kept.tradingKey.load()?.publicKey?.toBase58()) }
         refresh()
         viewModelScope.launch { while (true) { delay(4_000); tick() } }
@@ -108,10 +114,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun clearMessage() = _state.update { it.copy(message = null, error = null) }
 
     private inline fun work(label: String, crossinline block: suspend () -> Unit) {
+        if (!operationActive.compareAndSet(false, true)) return
         viewModelScope.launch {
             _state.update { it.copy(busy = label, error = null, message = null) }
             try {
                 block()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: app.kept.wallet.WalletRejected) {
                 val m = e.message.orEmpty()
                 val slow = m.contains("invalid for signing", true) || m.contains("payloads invalid", true) || m.contains("Blockhash", true)
@@ -124,6 +133,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 _state.update { it.copy(error = friendly(e)) }
             } finally {
+                operationActive.set(false)
                 _state.update { it.copy(busy = null) }
             }
         }
@@ -159,7 +169,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (main != null) {
                     val v = program.vaultAddress(PublicKey(main))
                     vaultAddr = v.toBase58()
-                    rpc.accountData(vaultAddr)?.let { vault = program.decodeVault(it) }
+                    rpc.accountData(vaultAddr)?.let {
+                        val decoded = program.decodeVault(it)
+                        require(decoded.owner == PublicKey(main)) { "Vault owner does not match the connected wallet" }
+                        require(trading != null && decoded.banker == trading) { "Vault banker does not match this device's trading wallet" }
+                        vault = decoded
+                    }
                     vaultLamports = if (vault != null) rpc.balance(vaultAddr) else 0
                     skr = runCatching { rpc.tokenBalance(main, SKR_MINT) }.getOrDefault(0)
                 }
@@ -235,6 +250,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Opens the vault on chain (the main wallet signs) and switches the reflex on. */
     fun createVault(bankBps: Int, cooldownSecs: Long) = work("Opening your vault…") {
+        require(bankBps in 1..10_000) { "Bank share must be between 0.01% and 100%" }
+        require(cooldownSecs > 0) { "Withdrawal wait must be positive" }
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val trading = kept.tradingKey.load()?.publicKey ?: error("Create the trading wallet first")
@@ -247,6 +264,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.initVault(main, trading, cooldownSecs, bankBps)))
         signAndConfirm(w, tx)
+        val created = rpc.accountData(program.vaultAddress(main).toBase58())?.let(program::decodeVault)
+            ?: error("The transaction confirmed, but the vault account is not readable yet. Do not retry; refresh first.")
+        require(created.owner == main && created.banker == trading) { "The confirmed vault does not match this wallet and trading key" }
         kept.prefs.bankBps = bankBps
         kept.prefs.cooldownSecs = cooldownSecs
         kept.prefs.vaultReady = true
@@ -263,9 +283,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun fundTrading(lamports: Long) = work("Sending SOL to your trading wallet…") {
+        require(lamports > 0) { "Amount must be positive" }
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val trading = kept.tradingKey.load()?.publicKey ?: error("Create the trading wallet first")
+        val sourceBalance = rpc.balance(main.toBase58())
+        require(lamports <= sourceBalance - 10_000L) { "That amount leaves too little SOL for the network fee" }
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(VaultProgram.transfer(main, trading, lamports)))
         signAndConfirm(w, tx)
         _state.update { it.copy(message = "Sent.") }
@@ -275,8 +298,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- Vault --------------------------------------------------------------------------------
 
     fun requestWithdraw(lamports: Long, toTrading: Boolean) = work("Asking to take money out…") {
+        require(lamports > 0) { "Amount must be positive" }
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
+        val vaultAddress = program.vaultAddress(main).toBase58()
+        val rent = rpc.minimumBalanceForRentExemption(VaultProgram.VAULT_ACCOUNT_SIZE)
+        val spendable = (rpc.balance(vaultAddress) - rent).coerceAtLeast(0)
+        require(lamports <= spendable) { "That is more than the vault can withdraw while keeping its rent reserve" }
         val to = if (toTrading) kept.tradingKey.load()!!.publicKey else main
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.requestWithdraw(main, VaultProgram.Asset.Sol, lamports, to)))
         signAndConfirm(w, tx)
@@ -304,6 +332,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setBankAsset(asset: String) {
+        require(asset == "sol") { "Staked SKR banking is disabled until its balance boundaries are verified" }
         kept.prefs.bankAsset = asset
         _state.update { it.copy(bankAsset = asset) }
     }
@@ -350,6 +379,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setRules(cooldownSecs: Long, bankBps: Int) = work("Saving your rules…") {
+        require(bankBps in 1..10_000) { "Bank share must be between 0.01% and 100%" }
+        require(cooldownSecs > 0) { "Withdrawal wait must be positive" }
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val trading = kept.tradingKey.load()!!.publicKey
@@ -366,6 +397,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun quote(inMint: String, outMint: String, amount: Long) = jupiter.quote(inMint, outMint, amount)
 
     fun swap(quote: Jupiter.Quote, label: String) = work(label) {
+        error("In-app trading is disabled until Jupiter transactions are verified before signing")
         val key = kept.tradingKey.load() ?: error("No trading wallet")
         val tx = jupiter.signedSwap(quote, key)
         rpc.simulateSigned(tx)

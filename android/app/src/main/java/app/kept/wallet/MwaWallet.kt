@@ -33,7 +33,7 @@ class MwaWallet(
     private fun newAdapter() = MobileWalletAdapter(
         ConnectionIdentity(
             identityUri = Uri.parse("https://kept-seeker.vercel.app"),
-            iconUri = Uri.parse("favicon.ico"),
+            iconUri = Uri.parse("https://kept-seeker.vercel.app/favicon.ico"),
             identityName = "Kept",
         ),
     ).apply {

@@ -17,8 +17,10 @@ val local = Properties().apply {
 fun cfg(key: String, default: String): String = (project.findProperty(key) as String?) ?: local.getProperty(key, default)
 
 val targetCluster = cfg("kept.cluster", "devnet")
+val debugWalletEnabled = cfg("kept.debugWallet", "false").toBoolean()
 require(targetCluster == "devnet" || targetCluster == "mainnet-beta") { "kept.cluster must be devnet or mainnet-beta" }
 if (targetCluster == "mainnet-beta") {
+    require(!debugWalletEnabled) { "The software debug wallet is forbidden on mainnet." }
     require(cfg("kept.enableMainnet", "false").toBoolean()) {
         "Mainnet builds are blocked by default. Verify the deployed program and pass -Pkept.enableMainnet=true explicitly."
     }
@@ -45,7 +47,7 @@ android {
         buildConfigField("String", "HISTORY_URL", "\"${cfg("kept.history", "https://kept-seeker.vercel.app/api/history?c=$proxyCluster")}\"")
         buildConfigField("String", "CLUSTER", "\"$cluster\"")
         // Emulator testing only: a software main wallet instead of a wallet app. Ignored in release builds.
-        buildConfigField("boolean", "DEBUG_WALLET", cfg("kept.debugWallet", "false"))
+        buildConfigField("boolean", "DEBUG_WALLET", debugWalletEnabled.toString())
         buildConfigField("String", "VAULT_PROGRAM", "\"${cfg("kept.program", "EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK")}\"")
     }
 

@@ -21,7 +21,7 @@ The pull-request Vercel preview is currently red even though both the working tr
 | Android unit tests | Pass, 52/52 | `:app:testDebugUnitTest` |
 | Android debug build | Pass | `:app:assembleDebug` |
 | Android release build | Pass, unsigned | `:app:assembleRelease` |
-| Devnet phone-test APK | Built and signature-verified | SHA-256 `e70a5fd42f29bfe07abace1219a9ec94364fb4caa926687b5a31bc149cb00728` |
+| Devnet phone-test APK | Built and signature-verified | SHA-256 `ce46b5e0bdf699be229016debae06999efeff606faabecb8a5629e0d0c1bbdb1` |
 | Engine tests | Pass, 10/10 | `engine/npm test` |
 | Web tests | Pass, 4/4 | `web/npm test` |
 | Web production build | Pass | `web/npm run build` |
@@ -68,10 +68,10 @@ The pull-request Vercel preview is currently red even though both the working tr
    - Builds now default to devnet and fail closed for mainnet unless `-Pkept.enableMainnet=true` is passed explicitly.
    - Mainnet remains blocked until the program is deployed, verified, audited, funded, and exercised end to end.
 
-7. **Jupiter and SKR paths are implemented but lack live app evidence**
-   - Jupiter quote, transaction signing, and app UI exist.
-   - SKR swap-and-stake logic and tests exist.
-   - No verified app-generated Jupiter buy/sell or live SKR bank transaction is recorded in the current evidence.
+7. **Jupiter and SKR paths are implemented but unsafe to expose**
+   - Jupiter's returned transaction was signed without semantic validation of payer, instructions, assets, amounts, and destinations.
+   - SKR banking could stake unrelated SKR already present in the trading wallet.
+   - The Trade tab and staked-SKR choice are now disabled. They remain release work, not product claims.
 
 ### Fixed during this audit
 
@@ -135,6 +135,26 @@ The pull-request Vercel preview is currently red even though both the working tr
 21. **Mainnet could be selected accidentally**
    - The program account is absent on mainnet.
    - Devnet is now the default, and an explicit mainnet enable flag is required at build time.
+
+22. **Rapid actions could overlap wallet sessions**
+   - ViewModel work admission was not atomic, so two taps could launch before Compose propagated `busy`.
+   - A process-wide operation gate now admits one financial action at a time, MWA calls remain mutex-serialized, and coroutine cancellation is rethrown rather than converted into an error.
+
+23. **The watcher trusted local preferences as authorization**
+   - Before starting, the watcher now reads the on-chain vault and requires its owner and banker to match the connected wallet and this device's trading key.
+   - A mismatch disables the watcher instead of attempting signed banks.
+
+24. **Financial validation existed only in UI controls**
+   - Funding and withdrawal limits are now repeated in the ViewModel using live source balance and rent reserve.
+   - Vault creation verifies the confirmed on-chain owner and banker before persisting readiness or starting the watcher.
+
+### Still open before production
+
+- Replace the watcher JSON store with crash-safe, generation-retaining atomic persistence. Corruption currently risks losing cost basis and the processing cursor.
+- Add semantic validation and adversarial fixtures before restoring in-app Jupiter trading.
+- Bound SKR staking to the verified post-swap delta before restoring staked-SKR banking.
+- Recover the existing release key and resolve wallet-provider trust warnings.
+- Complete the signed physical-phone vault, bank, withdrawal, restart, and recovery loop.
 
 ## Requirement matrix
 

@@ -53,12 +53,10 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
             Spacer(Modifier.height(20.dp))
             Label("Bank wins as")
             Spacer(Modifier.height(8.dp))
-            Chips(listOf("sol" to "SOL", "skr" to "Staked SKR"), s.bankAsset, { it == "sol" || tier }) { vm.setBankAsset(it) }
+            Chips(listOf("sol" to "SOL"), s.bankAsset, { true }) { vm.setBankAsset(it) }
             Spacer(Modifier.height(6.dp))
             Text(
-                if (s.bankAsset == "skr") "Each win's share is swapped to SKR and staked in your vault's name. It earns while it waits, and only your vault's wait can release it."
-                else if (tier) "Choose Staked SKR to have each win's share swapped to SKR and staked for you."
-                else "Hold ${SKR_TIER_RAW / 1_000_000} SKR to bank into staked SKR.",
+                "Staked SKR banking is temporarily disabled while its balance boundaries are hardened.",
                 style = MaterialTheme.typography.labelSmall, color = c.dim,
             )
             Spacer(Modifier.height(20.dp))
