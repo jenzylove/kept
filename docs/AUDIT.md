@@ -12,6 +12,8 @@
 
 The build-agent credit reset is not a coding blocker. The remaining engineering work can be completed here. Release signing, phone interaction, profile completion, and final submission require the owner's existing credentials or direct actions.
 
+The pull-request Vercel preview is currently red even though both the working tree and a fresh detached worktree pass `npm ci && npm run build`. Vercel's build log is private and no Vercel credential is available here, so that provider-specific failure must be inspected before merge.
+
 ## What is verified
 
 | Area | Result | Evidence |
@@ -54,43 +56,49 @@ The build-agent credit reset is not a coding blocker. The remaining engineering 
 
 ### High priority product proof
 
-5. **Final network path is not locked**
+5. **Vercel preview failure needs its private log**
+   - PR #1's Vercel preview reports a failed deployment.
+   - A fresh detached worktree passes `npm ci` and the production build with all relevant environment variables unset.
+   - GitHub resolves the commit author to `jenzylove`, so author mapping is not the apparent cause.
+   - Inspect the Vercel log before merging or deploying to production.
+
+6. **Final network path is not locked**
    - Devnet program and bank proofs are verified in project evidence.
    - Mainnet deployment of the same program ID is not verified from this checkout.
    - A devnet release is sufficient for the submission if labeled clearly. Mainnet should remain a stretch goal unless the existing program authority and funding are available.
 
-6. **Jupiter and SKR paths are implemented but lack live app evidence**
+7. **Jupiter and SKR paths are implemented but lack live app evidence**
    - Jupiter quote, transaction signing, and app UI exist.
    - SKR swap-and-stake logic and tests exist.
    - No verified app-generated Jupiter buy/sell or live SKR bank transaction is recorded in the current evidence.
 
 ### Fixed during this audit
 
-7. **The clean checkout did not compile**
+8. **The clean checkout did not compile**
    - Root cause: `.gitignore` ignored every `keys/` directory, including `app.kept.keys.TradingKey` and its tests.
    - Fixed by restoring encrypted trading-key storage and five regression tests, and narrowing `.gitignore`.
 
-8. **Android build script only worked on the former Windows machine**
+9. **Android build script only worked on the former Windows machine**
    - It hardcoded `/c/Users/LENOVO/dev-tools/env.sh` and global `gradle`.
    - Fixed with an optional environment file, common SDK discovery, the checked-in Gradle wrapper, and executable bits.
 
-9. **Cluster build flag was inconsistent**
+10. **Cluster build flag was inconsistent**
    - `-Pkept.cluster=devnet` changed the websocket but not `BuildConfig.CLUSTER`.
    - Fixed and verified for both mainnet and devnet generated constants.
 
-10. **Clean release defaults could bypass the protected proxy**
+11. **Clean release defaults could bypass the protected proxy**
     - The APK defaulted to public RPC and no bulk-history endpoint.
     - Fixed with explicit cluster-safe RPC and history proxy URLs.
 
-11. **Web dependency advisories**
+12. **Web dependency advisories**
     - PostCSS and Sharp advisories were present.
     - Fixed with safe transitive overrides. The production build passes and `npm audit` reports zero vulnerabilities.
 
-12. **Judge path had no APK call to action**
+13. **Judge path had no APK call to action**
     - Added a Download APK button, source link, and proof link.
     - The APK URL will remain unavailable until the release asset is published.
 
-13. **Hardware-security copy was broader than the implementation proves**
+14. **Hardware-security copy was broader than the implementation proves**
     - Android Keystore is guaranteed by the code. Hardware backing varies by device.
     - App and web copy now state the narrower, verifiable claim.
 
