@@ -70,6 +70,7 @@ class Reflex(
     /** Handle everything new on the trading wallet. Returns the bank attempts made in this pass. */
     suspend fun drain(): List<BankEntry> = lock.withLock {
         val made = ArrayList<BankEntry>()
+        made += retrySafeFailedLocked()
         val pending = newSignatures()
         for (s in pending) {
             val tx = chain.transactionWhenReady(s.signature) ?: break // not indexed yet: retry next pass, keep order
@@ -135,28 +136,40 @@ class Reflex(
                 record(BankEntry.Status.Failed, reason = "SKR bank: ${e.message ?: e::class.simpleName}") { it.copy(asset = "SKR") }
             }
         }
-        return try {
+        val tx = try {
             val hash = chain.latestBlockhash()
-            val tx = VaultProgram.signedBase64(
+            VaultProgram.signedBase64(
                 hash, signer.publicKey,
                 listOf(program.bank(signer.publicKey, r.vaultOwner, amount, profit, sellSignature)),
                 signer,
             )
+        } catch (e: Exception) {
+            return record(BankEntry.Status.Failed, reason = "Not submitted: ${e.message ?: e::class.simpleName}")
+        }
+        val expectedSig = VaultProgram.firstSignature(tx)
+        return try {
             val sig = chain.send(tx)
             if (chain.confirm(sig)) record(BankEntry.Status.Confirmed, sig) else record(BankEntry.Status.Failed, sig, "Not confirmed in time; it may still land")
         } catch (e: Exception) {
-            record(BankEntry.Status.Failed, reason = e.message ?: e::class.simpleName)
+            // sendTransaction can fail after the node accepted the transaction. Keep the locally
+            // derived signature so this attempt is never retried without chain reconciliation.
+            record(BankEntry.Status.Failed, expectedSig, "Submission uncertain; verify this signature: ${e.message ?: e::class.simpleName}")
         }
     }
 
-    /** Try again for banks that failed, using the profit we recorded. */
+    /** Retry only SOL banks that failed before a signed transaction could have been submitted. */
     suspend fun retryFailed(): List<BankEntry> = lock.withLock {
+        retrySafeFailedLocked()
+    }
+
+    private suspend fun retrySafeFailedLocked(): List<BankEntry> {
         val out = ArrayList<BankEntry>()
-        for (f in state.log.filter { it.status == BankEntry.Status.Failed && it.bankSignature == null }) {
-            // A failed attempt may have landed anyway; the program ties each bank to a sell, but the chain is the judge.
+        for (f in state.log.filter {
+            it.status == BankEntry.Status.Failed && it.bankSignature == null && it.asset == "SOL"
+        }) {
             out += bank(f.sellSignature, f.mint, f.profitLamports, f.sellTime)
         }
-        out
+        return out
     }
 
     companion object {

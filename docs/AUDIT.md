@@ -18,10 +18,10 @@ The pull-request Vercel preview is currently red even though both the working tr
 
 | Area | Result | Evidence |
 |---|---|---|
-| Android unit tests | Pass, 43/43 | `:app:testDebugUnitTest` |
+| Android unit tests | Pass, 44/44 | `:app:testDebugUnitTest` |
 | Android debug build | Pass | `:app:assembleDebug` |
 | Android release build | Pass, unsigned | `:app:assembleRelease` |
-| Devnet phone-test APK | Built and signature-verified | `artifacts/kept-devnet-debug.apk` |
+| Devnet phone-test APK | Built and signature-verified | SHA-256 `4654bd981845267e03c7d4424a52ae71ed68671cce5d8bf0ae8ebaabc672d995` |
 | Engine tests | Pass, 10/10 | `engine/npm test` |
 | Web tests | Pass, 4/4 | `web/npm test` |
 | Web production build | Pass | `web/npm run build` |
@@ -101,6 +101,12 @@ The pull-request Vercel preview is currently red even though both the working tr
 14. **Hardware-security copy was broader than the implementation proves**
     - Android Keystore is guaranteed by the code. Hardware backing varies by device.
     - App and web copy now state the narrower, verifiable claim.
+
+15. **Failed-bank retry could not distinguish safe retries from ambiguous submissions**
+    - The watcher did not call the retry helper, while calling it blindly could duplicate a SOL bank after an RPC timeout or repeat part of the multi-step SKR flow.
+    - Fixed by deriving the SOL transaction signature before RPC submission, retaining it when submission or confirmation is ambiguous, and automatically retrying only SOL attempts that failed before a signed transaction could have been submitted.
+    - Ambiguous SOL attempts and every failed SKR attempt remain blocked for explicit chain reconciliation.
+    - Regression tests cover safe restart retry, ambiguous submission suppression, and SKR non-retry.
 
 ## Requirement matrix
 

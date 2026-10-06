@@ -25,7 +25,11 @@ class ReflexTest {
     private val vaultOwner = Keypair.generate().publicKey
 
     /** A node that serves a fixed list of real transactions, newest first, and records what we send. */
-    private class FakeChain(private val txs: List<JsonObject>, private val failSend: Boolean = false) : Chain {
+    private class FakeChain(
+        private val txs: List<JsonObject>,
+        private val failSend: Boolean = false,
+        private val failBlockhash: Boolean = false,
+    ) : Chain {
         val sent = ArrayList<String>()
         var confirmCalls = 0
         override suspend fun signatures(address: String, limit: Int, before: String?, until: String?): List<Rpc.SigInfo> {
@@ -35,7 +39,10 @@ class ReflexTest {
             return list.take(limit)
         }
         override suspend fun transactionWhenReady(signature: String) = txs.firstOrNull { Engine.signature(it) == signature }
-        override suspend fun latestBlockhash() = "11111111111111111111111111111111"
+        override suspend fun latestBlockhash(): String {
+            if (failBlockhash) error("RPC unavailable before signing")
+            return "11111111111111111111111111111111"
+        }
         override suspend fun send(base64Tx: String): String {
             if (failSend) error("preflight failed")
             sent += base64Tx
@@ -83,6 +90,7 @@ class ReflexTest {
         // The transaction we sent is a bank instruction for that amount, signed by the trading key.
         val bytes = Base64.getDecoder().decode(chain.sent.single())
         assertEquals(1, bytes[0].toInt())
+        assertEquals(Base58.encode(bytes.copyOfRange(1, 65)), VaultProgram.firstSignature(chain.sent.single()))
         assertTrue(signer.publicKey.verify(bytes.copyOfRange(1, 65), bytes.copyOfRange(65, bytes.size)))
         val b = ByteBuffer.wrap(findBankData(bytes)).order(ByteOrder.LITTLE_ENDIAN)
         b.position(8) // skip the instruction discriminator
@@ -150,22 +158,41 @@ class ReflexTest {
     }
 
     @Test
-    fun aFailedSendIsRecordedAndCanBeRetriedWithoutLosingTheWin() = runBlocking {
+    fun aPreSubmissionFailureIsRetriedOnTheNextDrainWithoutLosingTheWin() = runBlocking {
         val txs = vectors(trader)
         val store = MemoryStore()
-        val failing = FakeChain(txs, failSend = true)
+        val failing = FakeChain(txs, failBlockhash = true)
         val (r, signer) = reflex(failing, store)
         val e = r.drain().single()
         assertEquals(BankEntry.Status.Failed, e.status)
+        assertEquals(null, e.bankSignature)
         assertNotNull(e.reason)
         assertEquals(1, store.state.log.size)
 
         val healthy = FakeChain(txs)
         val retry = Reflex(healthy, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader, clock = { 1_900_000_000L })
-        val again = retry.retryFailed().single()
+        val again = retry.drain().single()
         assertEquals(BankEntry.Status.Confirmed, again.status)
         assertEquals("the retry replaces the failed entry for the same sell", 1, store.state.log.size)
         assertEquals(1, healthy.sent.size)
+    }
+
+    @Test
+    fun anAmbiguousSubmissionKeepsItsDerivedSignatureAndIsNeverAutoRetried() = runBlocking {
+        val txs = vectors(trader)
+        val store = MemoryStore()
+        val failing = FakeChain(txs, failSend = true)
+        val (r, signer) = reflex(failing, store)
+        val failed = r.drain().single()
+
+        assertEquals(BankEntry.Status.Failed, failed.status)
+        assertNotNull(failed.bankSignature)
+        assertTrue(failed.reason!!.contains("Submission uncertain"))
+
+        val healthy = FakeChain(txs)
+        val restarted = Reflex(healthy, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader)
+        assertTrue(restarted.drain().isEmpty())
+        assertTrue(healthy.sent.isEmpty())
     }
 
     @Test
@@ -245,10 +272,13 @@ class ReflexTest {
     fun aFailedSkrBankIsRecordedAndNeverFallsBackToSol() = runBlocking {
         val chain = FakeChain(vectors(trader))
         val bank = FakeSkrBank(boom = IllegalStateException("No route for SKR"))
-        val e = skrReflex(chain, bank).drain().single()
+        val reflex = skrReflex(chain, bank)
+        val e = reflex.drain().single()
         assertEquals(BankEntry.Status.Failed, e.status)
         assertEquals("SKR", e.asset)
         assertTrue(e.reason!!.contains("No route for SKR"))
         assertTrue("the win is not silently banked as SOL", chain.sent.isEmpty())
+        assertTrue("multi-step SKR failures are never automatically retried", reflex.drain().isEmpty())
+        assertEquals(1, bank.calls)
     }
 }

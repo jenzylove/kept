@@ -165,6 +165,23 @@ class VaultProgram(programId: String) {
             return java.util.Base64.getEncoder().encodeToString(tx.serialize())
         }
 
+        /** Read the first signature from a signed wire transaction before submitting it to RPC. */
+        fun firstSignature(base64Tx: String): String {
+            val raw = java.util.Base64.getDecoder().decode(base64Tx)
+            var count = 0
+            var shift = 0
+            var cursor = 0
+            while (true) {
+                require(cursor < raw.size && shift <= 21) { "invalid signature count" }
+                val b = raw[cursor++].toInt() and 0xFF
+                count = count or ((b and 0x7F) shl shift)
+                if (b and 0x80 == 0) break
+                shift += 7
+            }
+            require(count > 0 && raw.size >= cursor + 64) { "signed transaction has no signature" }
+            return Base58.encode(raw.copyOfRange(cursor, cursor + 64))
+        }
+
         /**
          * Unsigned legacy transaction bytes, for a wallet app to sign over Mobile Wallet Adapter.
          * A wallet needs one zeroed 64 byte slot per required signer to sign into; sol4k writes none
