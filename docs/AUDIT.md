@@ -18,10 +18,10 @@ The pull-request Vercel preview is currently red even though both the working tr
 
 | Area | Result | Evidence |
 |---|---|---|
-| Android unit tests | Pass, 52/52 | `:app:testDebugUnitTest` |
+| Android unit tests | Pass, 53/53 | `:app:testDebugUnitTest` |
 | Android debug build | Pass | `:app:assembleDebug` |
 | Android release build | Pass, unsigned | `:app:assembleRelease` |
-| Devnet phone-test APK | Built and signature-verified | SHA-256 `ce46b5e0bdf699be229016debae06999efeff606faabecb8a5629e0d0c1bbdb1` |
+| Devnet phone-test APK | Built and signature-verified | SHA-256 `8be386b98b1e7324ca169330d56b657e3507a3db7f2e5091a3629dd25bf9d7d5` |
 | Engine tests | Pass, 10/10 | `engine/npm test` |
 | Web tests | Pass, 4/4 | `web/npm test` |
 | Web production build | Pass | `web/npm run build` |
@@ -147,6 +147,10 @@ The pull-request Vercel preview is currently red even though both the working tr
 24. **Financial validation existed only in UI controls**
    - Funding and withdrawal limits are now repeated in the ViewModel using live source balance and rent reserve.
    - Vault creation verifies the confirmed on-chain owner and banker before persisting readiness or starting the watcher.
+
+25. **MWA connection metadata used an invalid absolute icon URI**
+   - Physical-phone evidence showed `iconRelativeUri must be a relative Uri` before wallet association began.
+   - The MWA icon is again the required relative `favicon.ico`, with a regression test that rejects absolute values.
 
 ### Still open before production
 

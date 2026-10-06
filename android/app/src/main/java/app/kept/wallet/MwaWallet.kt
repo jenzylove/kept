@@ -13,6 +13,15 @@ import kotlinx.coroutines.sync.withLock
 import org.sol4k.Base58
 import org.sol4k.PublicKey
 
+internal const val MWA_IDENTITY_URI = "https://kept-seeker.vercel.app"
+internal const val MWA_ICON_RELATIVE_URI = "favicon.ico"
+
+internal fun mwaConnectionIdentity() = ConnectionIdentity(
+    identityUri = Uri.parse(MWA_IDENTITY_URI),
+    iconUri = Uri.parse(MWA_ICON_RELATIVE_URI),
+    identityName = "Kept",
+)
+
 /**
  * The real main wallet, over Mobile Wallet Adapter. On a Seeker the wallet app is the Seed Vault
  * Wallet and every signature is a double tap; elsewhere it is whichever MWA wallet is installed.
@@ -30,13 +39,7 @@ class MwaWallet(
      * walletUriBase, which can leave later local associations targeting a stale wallet endpoint
      * after the user cancels or Android restores the activity. The auth token remains reusable.
      */
-    private fun newAdapter() = MobileWalletAdapter(
-        ConnectionIdentity(
-            identityUri = Uri.parse("https://kept-seeker.vercel.app"),
-            iconUri = Uri.parse("https://kept-seeker.vercel.app/favicon.ico"),
-            identityName = "Kept",
-        ),
-    ).apply {
+    private fun newAdapter() = MobileWalletAdapter(mwaConnectionIdentity()).apply {
         blockchain = if (mainnet) Solana.Mainnet else Solana.Devnet
         authToken = prefs.walletAuthToken
     }
