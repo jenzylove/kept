@@ -158,6 +158,28 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         return call("sendTransaction", buildJsonArray { add(JsonPrimitive(base64Tx)); add(cfg) }).jsonPrimitive.content
     }
 
+    /** Fail closed before opening a wallet approval for a transaction the current cluster rejects. */
+    suspend fun simulateUnsigned(transaction: ByteArray) =
+        simulate(java.util.Base64.getEncoder().encodeToString(transaction), verifySignatures = false)
+
+    /** Verify and simulate a locally signed transaction before broadcasting it. */
+    suspend fun simulateSigned(base64Transaction: String) = simulate(base64Transaction, verifySignatures = true)
+
+    private suspend fun simulate(base64Transaction: String, verifySignatures: Boolean) {
+        val cfg = buildJsonObject {
+            put("encoding", "base64")
+            put("sigVerify", verifySignatures)
+            put("replaceRecentBlockhash", false)
+            put("commitment", "confirmed")
+        }
+        val value = call("simulateTransaction", buildJsonArray { add(JsonPrimitive(base64Transaction)); add(cfg) })
+            .jsonObject["value"]!!.jsonObject
+        val err = value["err"]
+        if (err != null && err !is JsonNull) {
+            throw RpcException(-3, "Transaction simulation failed: $err", value["logs"])
+        }
+    }
+
     /** Wait until the signature is confirmed. Returns false on timeout, throws if the transaction failed. */
     suspend fun confirm(signature: String, timeoutMs: Long = 45_000): Boolean {
         val deadline = System.currentTimeMillis() + timeoutMs

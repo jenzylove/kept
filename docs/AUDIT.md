@@ -18,10 +18,10 @@ The pull-request Vercel preview is currently red even though both the working tr
 
 | Area | Result | Evidence |
 |---|---|---|
-| Android unit tests | Pass, 45/45 | `:app:testDebugUnitTest` |
+| Android unit tests | Pass, 52/52 | `:app:testDebugUnitTest` |
 | Android debug build | Pass | `:app:assembleDebug` |
 | Android release build | Pass, unsigned | `:app:assembleRelease` |
-| Devnet phone-test APK | Built and signature-verified | SHA-256 `42e6ed2819dfb4392950d92072b4e0f13e17931723ba11b7b47b7236b68d5cbe` |
+| Devnet phone-test APK | Built and signature-verified | SHA-256 `e70a5fd42f29bfe07abace1219a9ec94364fb4caa926687b5a31bc149cb00728` |
 | Engine tests | Pass, 10/10 | `engine/npm test` |
 | Web tests | Pass, 4/4 | `web/npm test` |
 | Web production build | Pass | `web/npm run build` |
@@ -46,8 +46,9 @@ The pull-request Vercel preview is currently red even though both the working tr
    - The event requires accessible source.
 
 3. **Physical-device vault flow is incomplete**
-   - The APK now has real-phone evidence for installation, launch, MWA connection, and Android-Keystore trading-wallet creation.
-   - Vault creation is not complete. The connected owner wallet had zero devnet SOL, and transaction simulation reproduced `AccountNotFound`.
+   - The APK has real-phone evidence for installation, launch, MWA connection, Android-Keystore trading-wallet creation, backward-navigation failure, and wallet-association failure.
+   - The faucet subsequently landed 1.0 devnet SOL. Direct simulation of the exact vault-open instruction now succeeds with `InitVault` and 12,374 compute units.
+   - Vault creation remains unsigned because the wallet labels the transaction malicious. Testers must cancel until app identity and wallet-provider trust are resolved.
 
 4. **Submission media and form are absent**
    - No final video of three minutes or less.
@@ -62,10 +63,10 @@ The pull-request Vercel preview is currently red even though both the working tr
    - GitHub resolves the commit author to `jenzylove`, so author mapping is not the apparent cause.
    - Inspect the Vercel log before merging or deploying to production.
 
-6. **Final network path is not locked**
-   - Devnet program and bank proofs are verified in project evidence.
-   - Mainnet deployment of the same program ID is not verified from this checkout.
-   - A devnet release is sufficient for the submission if labeled clearly. Mainnet should remain a stretch goal unless the existing program authority and funding are available.
+6. **Mainnet is not available**
+   - The configured vault program is executable on devnet and absent on mainnet.
+   - Builds now default to devnet and fail closed for mainnet unless `-Pkept.enableMainnet=true` is passed explicitly.
+   - Mainnet remains blocked until the program is deployed, verified, audited, funded, and exercised end to end.
 
 7. **Jupiter and SKR paths are implemented but lack live app evidence**
    - Jupiter quote, transaction signing, and app UI exist.
@@ -109,10 +110,31 @@ The pull-request Vercel preview is currently red even though both the working tr
     - Regression tests cover safe restart retry, ambiguous submission suppression, and SKR non-retry.
 
 16. **Vault setup launched a transaction that was guaranteed to fail**
-    - Real-phone testing exposed a wallet simulation warning during vault creation.
-    - The connected owner had zero devnet SOL. A direct simulation of the same owner, banker, program, and vault PDA returned `AccountNotFound`.
-    - Kept now checks the current rent and owner balance before opening MWA, then shows the required network balance inside the app.
-    - The account-size and shortfall calculation are covered by the real devnet vault fixture.
+   - Real-phone testing exposed a wallet simulation warning during vault creation.
+   - The connected owner initially had zero devnet SOL. After the faucet landed, direct simulation succeeds.
+   - Kept checks current rent and owner balance, and now simulates every main-wallet transaction before opening MWA.
+   - The account-size and shortfall calculation are covered by the real devnet vault fixture.
+
+17. **Setup navigation and wallet recovery were trapped**
+   - Added on-screen and Android-system back navigation across all setup steps.
+   - Added visible network labeling and a Change wallet path that clears stale MWA authorization without deleting the device trading key.
+   - MWA operations now use fresh, serialized local-association sessions and reject a different authorized account.
+
+18. **Transaction success could be reported before confirmation**
+   - Owner-wallet actions and in-app Jupiter swaps ignored a false confirmation result.
+   - They now simulate first, submit once, require confirmation, and show the signature with a do-not-retry warning when status is ambiguous.
+
+19. **Money inputs used floating point**
+   - Setup funding, vault withdrawal, home funding, and trade amounts now use exact decimal-to-base-unit conversion.
+   - Sell percentages are bounded to 0-100% and use exact integer rounding.
+
+20. **Turning the reflex off was not persistent**
+   - Refresh and reboot could turn the watcher back on after the user disabled it.
+   - Background-watcher consent now persists independently from vault existence and is honored by the boot receiver.
+
+21. **Mainnet could be selected accidentally**
+   - The program account is absent on mainnet.
+   - Devnet is now the default, and an explicit mainnet enable flag is required at build time.
 
 ## Requirement matrix
 
@@ -159,7 +181,7 @@ The pull-request Vercel preview is currently red even though both the working tr
 ## Owner input required
 
 - Confirm whether the previous Windows workspace still contains `android/local.properties` and the release `.jks` or `.keystore` file.
-- Fund the connected owner with devnet SOL, install the refreshed `artifacts/kept-devnet-debug.apk`, and complete vault creation.
+- Install the refreshed `artifacts/kept-devnet-debug.apk`, retest wallet reconnect and back navigation, and cancel if the wallet still labels the transaction malicious.
 - Provide access to the Align account when final submission is ready.
 - Confirm before making the private repository public or publishing a GitHub release.
 
@@ -167,6 +189,6 @@ The pull-request Vercel preview is currently red even though both the working tr
 
 - No physical Android or Seeker was connected to this machine.
 - No wallet transaction was sent during this audit.
-- Mainnet program deployment was not confirmed.
+- Mainnet program deployment was checked and the configured program account is absent.
 - Existing program and release signing keys were not found here.
 - The current official dates API could not be refreshed in this environment. The deadline above comes from the saved official event snapshot dated 2026-09-29.

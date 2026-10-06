@@ -134,6 +134,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         else -> e.message?.take(240) ?: e::class.simpleName.orEmpty()
     }
 
+    /** Every main-wallet action uses the same simulate -> sign once -> confirm path. */
+    private suspend fun signAndConfirm(wallet: MainWallet, transaction: ByteArray): String {
+        rpc.simulateUnsigned(transaction)
+        val signature = wallet.signAndSend(transaction)
+        _state.update { it.copy(busy = "Waiting for the network…") }
+        if (!rpc.confirm(signature)) {
+            error("Transaction was submitted as $signature but confirmation is still pending. Do not retry yet; check this signature in an explorer.")
+        }
+        return signature
+    }
+
     fun refresh() {
         viewModelScope.launch {
             val s = _state.value
@@ -171,7 +182,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         tradingWallet = trading?.toBase58(), vaultAddress = vaultAddr, vault = vault, vaultLamports = vaultLamports,
                         tradingLamports = tradingLamports, skrRaw = skr, log = kept.reflexStore.load().log,
                         skr = skrPos, bankAsset = kept.prefs.bankAsset,
-                        reflexOn = vault != null && kept.prefs.vaultReady, loaded = true,
+                        reflexOn = vault != null && kept.prefs.vaultReady && kept.prefs.reflexEnabled, loaded = true,
                     )
                 }
             }.onFailure { e -> _state.update { it.copy(loaded = true, error = "Couldn't reach the network: ${e.message?.take(120)}") } }
@@ -208,6 +219,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refresh()
     }
 
+    /** Forget only the MWA owner connection. The device trading key is deliberately preserved. */
+    fun resetWalletConnection() {
+        require(_state.value.vault == null) { "The vault owner cannot be changed after the vault is open." }
+        kept.prefs.mainWallet = null
+        kept.prefs.walletAuthToken = null
+        _state.update { it.copy(mainWallet = null, error = null, message = null) }
+    }
+
     fun createTradingWallet() = work("Creating your trading wallet…") {
         if (!kept.tradingKey.exists()) kept.tradingKey.create()
         if (BuildConfig.DEBUG) android.util.Log.i("KeptDebug", "trading=${kept.tradingKey.load()?.publicKey?.toBase58()}")
@@ -227,18 +246,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             "Your connected wallet needs at least ${"%.4f".format(java.util.Locale.US, (rent + 5_000L) / 1_000_000_000.0)} ${network}SOL to open the vault. Its current ${network}balance is ${"%.4f".format(java.util.Locale.US, balance / 1_000_000_000.0)} SOL."
         }
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.initVault(main, trading, cooldownSecs, bankBps)))
-        val sig = w.signAndSend(tx)
-        _state.update { it.copy(busy = "Waiting for the network…") }
-        rpc.confirm(sig)
+        signAndConfirm(w, tx)
         kept.prefs.bankBps = bankBps
         kept.prefs.cooldownSecs = cooldownSecs
         kept.prefs.vaultReady = true
+        kept.prefs.reflexEnabled = true
         WatcherService.start(getApplication())
         _state.update { it.copy(message = "Vault open. Kept is on.") }
         refresh()
     }
 
     fun setReflex(on: Boolean) {
+        kept.prefs.reflexEnabled = on
         if (on) WatcherService.start(getApplication()) else WatcherService.stop(getApplication())
         _state.update { it.copy(reflexOn = on) }
     }
@@ -248,7 +267,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val trading = kept.tradingKey.load()?.publicKey ?: error("Create the trading wallet first")
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(VaultProgram.transfer(main, trading, lamports)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Sent.") }
         refresh()
     }
@@ -260,7 +279,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val to = if (toTrading) kept.tradingKey.load()!!.publicKey else main
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.requestWithdraw(main, VaultProgram.Asset.Sol, lamports, to)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Requested. It unlocks after the cooldown.") }
         refresh()
     }
@@ -269,7 +288,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.cancelWithdraw(main)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Cancelled. Your money stays in the vault.") }
         refresh()
     }
@@ -279,7 +298,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val v = _state.value.vault ?: error("No vault")
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.executeWithdrawSol(main, v.withdrawTo)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Done. The money is on its way to ${short(v.withdrawTo.toBase58())}.") }
         refresh()
     }
@@ -295,7 +314,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val pos = _state.value.skr ?: error("No staked SKR")
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.requestWithdraw(main, VaultProgram.Asset.StakedSkr, pos.shares, main)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Requested. It unlocks after your vault's wait.") }
         refresh()
     }
@@ -305,7 +324,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val w = wallet ?: error("Wallet not ready")
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.executeUnstakeSkr(main)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Unstaking started. SKR releases it after its own waiting period.") }
         refresh()
     }
@@ -325,7 +344,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             add(program.releaseSkr(main, amount))
         }
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, ixs)
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         _state.update { it.copy(message = "Done. Your SKR is back in your wallet.") }
         refresh()
     }
@@ -335,7 +354,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val main = PublicKey(kept.prefs.mainWallet ?: error("Connect your wallet first"))
         val trading = kept.tradingKey.load()!!.publicKey
         val tx = VaultProgram.unsignedBytes(rpc.latestBlockhash(), main, listOf(program.setRules(main, cooldownSecs, bankBps, trading)))
-        rpc.confirm(w.signAndSend(tx))
+        signAndConfirm(w, tx)
         kept.prefs.bankBps = bankBps
         kept.prefs.cooldownSecs = cooldownSecs
         _state.update { it.copy(message = "Saved.") }
@@ -349,8 +368,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun swap(quote: Jupiter.Quote, label: String) = work(label) {
         val key = kept.tradingKey.load() ?: error("No trading wallet")
         val tx = jupiter.signedSwap(quote, key)
+        rpc.simulateSigned(tx)
         val sig = rpc.send(tx)
-        rpc.confirm(sig)
+        if (!rpc.confirm(sig)) {
+            error("Swap was submitted as $sig but confirmation is still pending. Do not retry yet; check this signature in an explorer.")
+        }
         _state.update { it.copy(message = "Done. If it's a sell above your cost, the reflex banks your share in a few seconds.") }
         refresh()
     }

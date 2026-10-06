@@ -16,6 +16,14 @@ val local = Properties().apply {
 // Build settings come from, in order: a -Pkept.x=... command line flag, android/local.properties, a default.
 fun cfg(key: String, default: String): String = (project.findProperty(key) as String?) ?: local.getProperty(key, default)
 
+val targetCluster = cfg("kept.cluster", "devnet")
+require(targetCluster == "devnet" || targetCluster == "mainnet-beta") { "kept.cluster must be devnet or mainnet-beta" }
+if (targetCluster == "mainnet-beta") {
+    require(cfg("kept.enableMainnet", "false").toBoolean()) {
+        "Mainnet builds are blocked by default. Verify the deployed program and pass -Pkept.enableMainnet=true explicitly."
+    }
+}
+
 android {
     namespace = "app.kept"
     compileSdk = 35
@@ -26,7 +34,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
-        val cluster = cfg("kept.cluster", "mainnet-beta")
+        val cluster = targetCluster
         val proxyCluster = if (cluster == "mainnet-beta") "mainnet" else "devnet"
         // The RPC endpoint the app talks to. Release builds point at our proxy, never at a key.
         buildConfigField("String", "RPC_URL", "\"${cfg("kept.rpc", "https://kept-seeker.vercel.app/api/rpc?c=$proxyCluster")}\"")
