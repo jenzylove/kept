@@ -10,11 +10,26 @@ import com.solana.mobilewalletadapter.clientlib.TransactionParams
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import org.sol4k.Base58
 import org.sol4k.PublicKey
 
 internal const val MWA_IDENTITY_URI = "https://kept-seeker.vercel.app"
 internal const val MWA_ICON_RELATIVE_URI = "favicon.ico"
+internal const val MWA_OPERATION_TIMEOUT_MS = 70_000L
+
+internal suspend fun <T> withWalletOperationTimeout(
+    timeoutMs: Long = MWA_OPERATION_TIMEOUT_MS,
+    operation: suspend () -> T,
+): T = try {
+    withTimeout(timeoutMs) { operation() }
+} catch (_: TimeoutCancellationException) {
+    throw WalletRejected(
+        "Wallet approval timed out and Kept received no submitted signature. " +
+            "Do not retry until you check the wallet's activity.",
+    )
+}
 
 internal fun mwaConnectionIdentity() = ConnectionIdentity(
     identityUri = Uri.parse(MWA_IDENTITY_URI),
@@ -45,7 +60,8 @@ class MwaWallet(
     }
 
     private suspend fun <T> perform(operation: suspend (MobileWalletAdapter) -> TransactionResult<T>): TransactionResult.Success<T> =
-        sessionLock.withLock {
+        withWalletOperationTimeout {
+            sessionLock.withLock {
             val adapter = newAdapter()
             when (val result = operation(adapter)) {
                 is TransactionResult.Success -> {
@@ -66,6 +82,7 @@ class MwaWallet(
                     throw WalletRejected(message)
                 }
             }
+        }
         }
 
     override suspend fun connect(): PublicKey {

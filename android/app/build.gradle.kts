@@ -34,8 +34,8 @@ android {
         applicationId = "app.kept"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1-rc1"
         val cluster = targetCluster
         val proxyCluster = if (cluster == "mainnet-beta") "mainnet" else "devnet"
         // The RPC endpoint the app talks to. Release builds point at our proxy, never at a key.
