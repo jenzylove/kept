@@ -6,6 +6,7 @@ import java.io.FileOutputStream
 import java.math.BigInteger
 import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
+import java.nio.file.AccessDeniedException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -69,6 +70,11 @@ interface StateStore {
 
 class StateCorruptionException(message: String, cause: Throwable?) : IllegalStateException(message, cause)
 
+internal fun directorySyncIsUnsupportedOnThisHost(
+    error: Throwable,
+    osName: String = System.getProperty("os.name") ?: "",
+): Boolean = error is AccessDeniedException && osName.startsWith("Windows", ignoreCase = true)
+
 class JsonFileStore(private val file: File) : StateStore {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val directory = requireNotNull(file.absoluteFile.parentFile) { "State file needs a parent directory" }
@@ -120,6 +126,12 @@ class JsonFileStore(private val file: File) : StateStore {
         }
         // fsyncing the file is not enough: persist the renamed directory entry before save()
         // returns and a caller is allowed to perform a network side effect.
-        FileChannel.open(directory.toPath(), StandardOpenOption.READ).use { it.force(true) }
+        try {
+            FileChannel.open(directory.toPath(), StandardOpenOption.READ).use { it.force(true) }
+        } catch (error: AccessDeniedException) {
+            // Windows does not allow FileChannel.open() on a directory. Kept never runs there;
+            // Windows only hosts the release build. Android/Linux must still fail closed.
+            if (!directorySyncIsUnsupportedOnThisHost(error)) throw error
+        }
     }
 }

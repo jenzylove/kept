@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -346,6 +347,15 @@ class ReflexTest {
         f.writeText("{not valid json")
 
         assertEquals(first, JsonFileStore(f).load())
+    }
+
+    @Test
+    fun onlyWindowsMaySkipItsUnsupportedDirectoryFsync() {
+        val denied = java.nio.file.AccessDeniedException("state-directory")
+        assertTrue(directorySyncIsUnsupportedOnThisHost(denied, "Windows 11"))
+        assertTrue(directorySyncIsUnsupportedOnThisHost(denied, "Windows 10"))
+        assertFalse(directorySyncIsUnsupportedOnThisHost(denied, "Linux"))
+        assertFalse(directorySyncIsUnsupportedOnThisHost(java.io.IOException("disk failure"), "Windows 11"))
     }
 
     @Test
