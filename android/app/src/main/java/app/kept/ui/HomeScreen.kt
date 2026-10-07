@@ -160,6 +160,7 @@ private fun Receipt(e: BankEntry, now: Long) {
     val c = Kept.colors
     val ctx = LocalContext.current
     val (label, color) = when (e.status) {
+        BankEntry.Status.Pending -> "checking chain" to c.dim
         BankEntry.Status.Confirmed -> "+${fmtSol(e.amountLamports)} SOL" to c.brass
         BankEntry.Status.Failed -> "failed" to c.loss
         BankEntry.Status.NoVault -> "not banked" to c.dim

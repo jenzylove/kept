@@ -29,6 +29,7 @@ class ReflexTest {
         private val txs: List<JsonObject>,
         private val failSend: Boolean = false,
         private val failBlockhash: Boolean = false,
+        private var crashAfterAccept: Boolean = false,
     ) : Chain {
         val sent = ArrayList<String>()
         var confirmCalls = 0
@@ -46,10 +47,16 @@ class ReflexTest {
         override suspend fun send(base64Tx: String): String {
             if (failSend) error("preflight failed")
             sent += base64Tx
+            if (crashAfterAccept) {
+                crashAfterAccept = false
+                throw SimulatedProcessDeath()
+            }
             return Base58.encode(ByteArray(64) { (sent.size).toByte() })
         }
         override suspend fun confirm(signature: String): Boolean { confirmCalls++; return true }
     }
+
+    private class SimulatedProcessDeath : Error("process died after the RPC accepted the transaction")
 
     private class MemoryStore : StateStore {
         var state = ReflexState()
@@ -196,6 +203,29 @@ class ReflexTest {
     }
 
     @Test
+    fun processDeathAfterSubmissionCannotBankTheSameSellAgainOnRestart() = runBlocking {
+        val txs = vectors(trader)
+        val store = MemoryStore()
+        val chain = FakeChain(txs, crashAfterAccept = true)
+        val (first, signer) = reflex(chain, store)
+
+        try {
+            first.drain()
+            throw AssertionError("expected the simulated process death")
+        } catch (_: SimulatedProcessDeath) {
+            // A real process would be gone here, after sendTransaction but before its response.
+        }
+        assertEquals(1, chain.sent.size)
+        assertEquals(BankEntry.Status.Pending, store.state.log.single().status)
+
+        val restarted = Reflex(chain, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader)
+        val recovered = restarted.drain().single()
+        assertEquals(BankEntry.Status.Confirmed, recovered.status)
+        assertEquals(store.state.log.single().bankSignature, recovered.bankSignature)
+        assertEquals("restart must not submit the same bank transaction again", 1, chain.sent.size)
+    }
+
+    @Test
     fun noVaultMeansNothingIsSent() = runBlocking {
         val txs = vectors(trader)
         val chain = FakeChain(txs)
@@ -203,6 +233,34 @@ class ReflexTest {
         val e = r.drain().single()
         assertEquals(BankEntry.Status.NoVault, e.status)
         assertTrue(chain.sent.isEmpty())
+    }
+
+    @Test
+    fun theStateFileFailsClosedInsteadOfResettingFinancialHistory() {
+        val dir = java.nio.file.Files.createTempDirectory("reflex-corrupt-").toFile()
+        val f = File(dir, "state.json").also { it.writeText("{not valid json") }
+
+        try {
+            JsonFileStore(f).load()
+            throw AssertionError("corrupt state must not silently become an empty history")
+        } catch (e: StateCorruptionException) {
+            assertTrue(e.message!!.contains("refusing to reset financial history"))
+        }
+    }
+
+    @Test
+    fun theStateFileRecoversTheLastGoodGenerationWhenThePrimaryIsCorrupt() {
+        val dir = java.nio.file.Files.createTempDirectory("reflex-store-").toFile()
+        val f = File(dir, "state.json")
+        val store = JsonFileStore(f)
+        val first = ReflexState(lastSignature = "first", activatedAt = 5)
+        val second = ReflexState(lastSignature = "second", activatedAt = 6)
+
+        store.save(first)
+        store.save(second)
+        f.writeText("{not valid json")
+
+        assertEquals(first, JsonFileStore(f).load())
     }
 
     @Test

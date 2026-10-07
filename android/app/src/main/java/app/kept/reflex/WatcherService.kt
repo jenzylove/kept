@@ -158,6 +158,7 @@ class WatcherService : Service() {
         val nm = getSystemService(android.app.NotificationManager::class.java)
         val sol = String.format(Locale.US, "%.4f", e.amountLamports / 1e9)
         val (title, text) = when (e.status) {
+            BankEntry.Status.Pending -> return
             BankEntry.Status.Confirmed -> if (e.asset == "SKR") {
                 "Staked SKR for $sol SOL" to (if (e.stakedSkrRaw > 0) "Your share of a win on ${short(e.mint)} is now staked SKR in your vault." else "Bought SKR with your share. It will be staked with your next win.")
             } else "Banked $sol SOL" to "Kept your share of a win on ${short(e.mint)}${if (e.late) " (found late)" else ""}."

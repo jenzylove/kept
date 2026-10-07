@@ -70,9 +70,18 @@ class Reflex(
     /** Handle everything new on the trading wallet. Returns the bank attempts made in this pass. */
     suspend fun drain(): List<BankEntry> = lock.withLock {
         val made = ArrayList<BankEntry>()
+        made += reconcilePendingLocked()
         made += retrySafeFailedLocked()
         val pending = newSignatures()
         for (s in pending) {
+            // A bank intent is persisted before submission. If the process dies after the RPC
+            // accepts it but before the response is saved, the durable log is the idempotency key:
+            // advance the cursor without applying the sell or submitting its bank again.
+            if (state.log.any { it.sellSignature == s.signature }) {
+                state = state.copy(lastSignature = s.signature)
+                store.save(state)
+                continue
+            }
             val tx = chain.transactionWhenReady(s.signature) ?: break // not indexed yet: retry next pass, keep order
             val entry = handle(s.signature, tx)
             if (entry != null) made += entry
@@ -147,6 +156,15 @@ class Reflex(
             return record(BankEntry.Status.Failed, reason = "Not submitted: ${e.message ?: e::class.simpleName}")
         }
         val expectedSig = VaultProgram.firstSignature(tx)
+        // Persist the signed transaction identity before the first network side effect. A crash
+        // after this save may require reconciliation, but it can never duplicate the bank.
+        state = state.withLog(
+            BankEntry(
+                sellSignature, mint, profit, amount, expectedSig, BankEntry.Status.Pending,
+                "Submission may be in flight; verify this signature before retrying", sellTime, now, late,
+            ),
+        )
+        store.save(state)
         return try {
             val sig = chain.send(tx)
             if (chain.confirm(sig)) record(BankEntry.Status.Confirmed, sig) else record(BankEntry.Status.Failed, sig, "Not confirmed in time; it may still land")
@@ -155,6 +173,22 @@ class Reflex(
             // derived signature so this attempt is never retried without chain reconciliation.
             record(BankEntry.Status.Failed, expectedSig, "Submission uncertain; verify this signature: ${e.message ?: e::class.simpleName}")
         }
+    }
+
+    /** Reconcile signed intents after restart without ever resubmitting them. */
+    private suspend fun reconcilePendingLocked(): List<BankEntry> {
+        val confirmed = ArrayList<BankEntry>()
+        for (pending in state.log.filter { it.status == BankEntry.Status.Pending }) {
+            val signature = pending.bankSignature ?: continue
+            if (runCatching { chain.confirm(signature) }.getOrDefault(false)) {
+                val entry = pending.copy(status = BankEntry.Status.Confirmed, reason = null)
+                state = state.withLog(entry)
+                store.save(state)
+                onBank(entry)
+                confirmed += entry
+            }
+        }
+        return confirmed
     }
 
     /** Retry only SOL banks that failed before a signed transaction could have been submitted. */
