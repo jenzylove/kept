@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test test/decode.test.mjs test/engine-copy.test.mjs"
+    "test": "node --test test/decode.test.mjs test/engine-copy.test.mjs test/assetlinks-header.test.mjs"
   },
   "dependencies": {
     "next": "15.5.27",
