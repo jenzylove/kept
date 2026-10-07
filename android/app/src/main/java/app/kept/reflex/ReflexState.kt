@@ -4,10 +4,12 @@ import app.kept.engine.Engine
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigInteger
+import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -33,6 +35,10 @@ data class BankEntry(
     val stakedSkrRaw: Long = 0,
     /** SKR bought but under the 1 SKR minimum stake, waiting in the trading wallet for the next win. */
     val waitingSkrRaw: Long = 0,
+    /** Last block height at which this signed SOL transaction can land. Null on older receipts. */
+    val lastValidBlockHeight: Long? = null,
+    /** Earlier signed attempts proven failed or expired before a safe retry. */
+    val priorBankSignatures: List<String> = emptyList(),
 ) {
     @Serializable
     enum class Status { Pending, Confirmed, Failed, TooSmall, NoVault }
@@ -112,5 +118,8 @@ class JsonFileStore(private val file: File) : StateStore {
         } catch (_: AtomicMoveNotSupportedException) {
             Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
+        // fsyncing the file is not enough: persist the renamed directory entry before save()
+        // returns and a caller is allowed to perform a network side effect.
+        FileChannel.open(directory.toPath(), StandardOpenOption.READ).use { it.force(true) }
     }
 }

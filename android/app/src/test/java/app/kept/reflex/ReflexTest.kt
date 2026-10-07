@@ -30,6 +30,9 @@ class ReflexTest {
         private val failSend: Boolean = false,
         private val failBlockhash: Boolean = false,
         private var crashAfterAccept: Boolean = false,
+        var reportedStatus: Rpc.SignatureStatus = Rpc.SignatureStatus.Confirmed,
+        var currentBlockHeight: Long = 100,
+        private val lastValidBlockHeight: Long = 150,
     ) : Chain {
         val sent = ArrayList<String>()
         var confirmCalls = 0
@@ -40,10 +43,12 @@ class ReflexTest {
             return list.take(limit)
         }
         override suspend fun transactionWhenReady(signature: String) = txs.firstOrNull { Engine.signature(it) == signature }
-        override suspend fun latestBlockhash(): String {
+        override suspend fun latestBlockhash(): Rpc.BlockhashInfo {
             if (failBlockhash) error("RPC unavailable before signing")
-            return "11111111111111111111111111111111"
+            return Rpc.BlockhashInfo("11111111111111111111111111111111", lastValidBlockHeight)
         }
+        override suspend fun blockHeight() = currentBlockHeight
+        override suspend fun signatureStatus(signature: String) = reportedStatus
         override suspend fun send(base64Tx: String): String {
             if (failSend) error("preflight failed")
             sent += base64Tx
@@ -185,20 +190,25 @@ class ReflexTest {
     }
 
     @Test
-    fun anAmbiguousSubmissionKeepsItsDerivedSignatureAndIsNeverAutoRetried() = runBlocking {
+    fun anAmbiguousSubmissionStaysPendingAndIsNeverRetriedWhileItCanLand() = runBlocking {
         val txs = vectors(trader)
         val store = MemoryStore()
         val failing = FakeChain(txs, failSend = true)
         val (r, signer) = reflex(failing, store)
-        val failed = r.drain().single()
+        val pending = r.drain().single()
 
-        assertEquals(BankEntry.Status.Failed, failed.status)
-        assertNotNull(failed.bankSignature)
-        assertTrue(failed.reason!!.contains("Submission uncertain"))
+        assertEquals(BankEntry.Status.Pending, pending.status)
+        assertNotNull(pending.bankSignature)
+        assertTrue(pending.reason!!.contains("Submission uncertain"))
 
-        val healthy = FakeChain(txs)
+        val healthy = FakeChain(
+            txs,
+            reportedStatus = Rpc.SignatureStatus.Missing,
+            currentBlockHeight = 149,
+        )
         val restarted = Reflex(healthy, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader)
         assertTrue(restarted.drain().isEmpty())
+        assertEquals(BankEntry.Status.Pending, store.state.log.single().status)
         assertTrue(healthy.sent.isEmpty())
     }
 
@@ -223,6 +233,81 @@ class ReflexTest {
         assertEquals(BankEntry.Status.Confirmed, recovered.status)
         assertEquals(store.state.log.single().bankSignature, recovered.bankSignature)
         assertEquals("restart must not submit the same bank transaction again", 1, chain.sent.size)
+    }
+
+    @Test
+    fun anUnconfirmedIntentNeverRetriesWhileItsBlockhashCanStillLand() = runBlocking {
+        val txs = vectors(trader)
+        val store = MemoryStore()
+        val chain = FakeChain(
+            txs,
+            crashAfterAccept = true,
+            reportedStatus = Rpc.SignatureStatus.Missing,
+            currentBlockHeight = 149,
+        )
+        val (first, signer) = reflex(chain, store)
+        try {
+            first.drain()
+            throw AssertionError("expected the simulated process death")
+        } catch (_: SimulatedProcessDeath) {}
+
+        repeat(2) {
+            val restarted = Reflex(chain, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader)
+            assertTrue(restarted.drain().isEmpty())
+        }
+        assertEquals(BankEntry.Status.Pending, store.state.log.single().status)
+        assertEquals("a transaction that may still land must never be retried", 1, chain.sent.size)
+    }
+
+    @Test
+    fun aMissingIntentRetriesOnlyAfterItsBlockhashProvablyExpires() = runBlocking {
+        val txs = vectors(trader)
+        val store = MemoryStore()
+        val chain = FakeChain(
+            txs,
+            crashAfterAccept = true,
+            reportedStatus = Rpc.SignatureStatus.Missing,
+            currentBlockHeight = 149,
+        )
+        val (first, signer) = reflex(chain, store)
+        try {
+            first.drain()
+            throw AssertionError("expected the simulated process death")
+        } catch (_: SimulatedProcessDeath) {}
+        val firstSignature = store.state.log.single().bankSignature!!
+
+        chain.currentBlockHeight = 151
+        val restarted = Reflex(chain, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader)
+        val retried = restarted.drain().single()
+
+        assertEquals(BankEntry.Status.Confirmed, retried.status)
+        assertEquals(listOf(firstSignature), retried.priorBankSignatures)
+        assertEquals("one original submission and one provably safe retry", 2, chain.sent.size)
+    }
+
+    @Test
+    fun anOnChainFailedIntentRetriesWithoutWaitingForBlockhashExpiry() = runBlocking {
+        val txs = vectors(trader)
+        val store = MemoryStore()
+        val chain = FakeChain(
+            txs,
+            crashAfterAccept = true,
+            reportedStatus = Rpc.SignatureStatus.Failed,
+            currentBlockHeight = 100,
+        )
+        val (first, signer) = reflex(chain, store)
+        try {
+            first.drain()
+            throw AssertionError("expected the simulated process death")
+        } catch (_: SimulatedProcessDeath) {}
+        val firstSignature = store.state.log.single().bankSignature!!
+
+        val restarted = Reflex(chain, signer, program, store, { Rules(vaultOwner, 5000) }, watched = trader)
+        val retried = restarted.drain().single()
+
+        assertEquals(BankEntry.Status.Confirmed, retried.status)
+        assertEquals(listOf(firstSignature), retried.priorBankSignatures)
+        assertEquals("a failed signature cannot land and is safe to retry", 2, chain.sent.size)
     }
 
     @Test

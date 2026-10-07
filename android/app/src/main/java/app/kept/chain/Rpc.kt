@@ -73,6 +73,8 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
     }
 
     data class SigInfo(val signature: String, val slot: Long, val failed: Boolean, val blockTime: Long?)
+    data class BlockhashInfo(val blockhash: String, val lastValidBlockHeight: Long)
+    enum class SignatureStatus { Confirmed, Failed, Processing, Missing }
 
     suspend fun signatures(address: String, limit: Int = 100, before: String? = null, until: String? = null): List<SigInfo> {
         val cfg = buildJsonObject {
@@ -113,10 +115,37 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         return null
     }
 
-    suspend fun latestBlockhash(): String {
+    suspend fun latestBlockhash(): String = latestBlockhashInfo().blockhash
+
+    suspend fun latestBlockhashInfo(): BlockhashInfo {
         val cfg = buildJsonObject { put("commitment", "confirmed") }
         val r = call("getLatestBlockhash", buildJsonArray { add(cfg) }).jsonObject
-        return r["value"]!!.jsonObject["blockhash"]!!.jsonPrimitive.content
+        val value = r["value"]!!.jsonObject
+        return BlockhashInfo(
+            value["blockhash"]!!.jsonPrimitive.content,
+            value["lastValidBlockHeight"]!!.jsonPrimitive.long(),
+        )
+    }
+
+    suspend fun blockHeight(): Long {
+        val cfg = buildJsonObject { put("commitment", "confirmed") }
+        return call("getBlockHeight", buildJsonArray { add(cfg) }).jsonPrimitive.long()
+    }
+
+    suspend fun signatureStatus(signature: String): SignatureStatus {
+        val cfg = buildJsonObject { put("searchTransactionHistory", true) }
+        val r = call(
+            "getSignatureStatuses",
+            buildJsonArray { add(buildJsonArray { add(JsonPrimitive(signature)) }); add(cfg) },
+        ).jsonObject
+        val status = r["value"]!!.jsonArray[0]
+        if (status !is JsonObject) return SignatureStatus.Missing
+        val err = status["err"]
+        if (err != null && err !is JsonNull) return SignatureStatus.Failed
+        return when (status["confirmationStatus"]?.jsonPrimitive?.contentOrNull) {
+            "confirmed", "finalized" -> SignatureStatus.Confirmed
+            else -> SignatureStatus.Processing
+        }
     }
 
     suspend fun balance(address: String): Long {

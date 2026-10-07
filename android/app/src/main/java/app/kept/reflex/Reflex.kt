@@ -13,7 +13,9 @@ import org.sol4k.PublicKey
 interface Chain {
     suspend fun signatures(address: String, limit: Int, before: String?, until: String?): List<Rpc.SigInfo>
     suspend fun transactionWhenReady(signature: String): JsonObject?
-    suspend fun latestBlockhash(): String
+    suspend fun latestBlockhash(): Rpc.BlockhashInfo
+    suspend fun blockHeight(): Long
+    suspend fun signatureStatus(signature: String): Rpc.SignatureStatus
     suspend fun send(base64Tx: String): String
     suspend fun confirm(signature: String): Boolean
 }
@@ -21,7 +23,9 @@ interface Chain {
 class RpcChain(private val rpc: Rpc) : Chain {
     override suspend fun signatures(address: String, limit: Int, before: String?, until: String?) = rpc.signatures(address, limit, before, until)
     override suspend fun transactionWhenReady(signature: String) = rpc.transactionWhenReady(signature)
-    override suspend fun latestBlockhash() = rpc.latestBlockhash()
+    override suspend fun latestBlockhash() = rpc.latestBlockhashInfo()
+    override suspend fun blockHeight() = rpc.blockHeight()
+    override suspend fun signatureStatus(signature: String) = rpc.signatureStatus(signature)
     override suspend fun send(base64Tx: String) = rpc.send(base64Tx)
     override suspend fun confirm(signature: String) = rpc.confirm(signature)
 }
@@ -119,14 +123,25 @@ class Reflex(
         return bank(signature, sold.mint, profit.toLong(), sellTime)
     }
 
-    private suspend fun bank(sellSignature: String, mint: String, profit: Long, sellTime: Long?): BankEntry {
+    private suspend fun bank(
+        sellSignature: String,
+        mint: String,
+        profit: Long,
+        sellTime: Long?,
+        priorBankSignatures: List<String> = emptyList(),
+    ): BankEntry {
         val now = clock()
         val late = sellTime != null && now - sellTime > LATE_AFTER_SECS
         val amount = Engine.bankAmount(java.math.BigInteger.valueOf(profit), rules()?.bankBps ?: 0).toLong()
         fun record(
             status: BankEntry.Status, sig: String? = null, reason: String? = null,
             extra: (BankEntry) -> BankEntry = { it },
-        ) = extra(BankEntry(sellSignature, mint, profit, amount, sig, status, reason, sellTime, now, late)).also {
+        ) = extra(
+            BankEntry(
+                sellSignature, mint, profit, amount, sig, status, reason, sellTime, now, late,
+                priorBankSignatures = priorBankSignatures,
+            ),
+        ).also {
             state = state.withLog(it)
             store.save(state)
             onBank(it)
@@ -145,16 +160,17 @@ class Reflex(
                 record(BankEntry.Status.Failed, reason = "SKR bank: ${e.message ?: e::class.simpleName}") { it.copy(asset = "SKR") }
             }
         }
-        val tx = try {
-            val hash = chain.latestBlockhash()
-            VaultProgram.signedBase64(
-                hash, signer.publicKey,
+        val built = try {
+            val recent = chain.latestBlockhash()
+            recent to VaultProgram.signedBase64(
+                recent.blockhash, signer.publicKey,
                 listOf(program.bank(signer.publicKey, r.vaultOwner, amount, profit, sellSignature)),
                 signer,
             )
         } catch (e: Exception) {
             return record(BankEntry.Status.Failed, reason = "Not submitted: ${e.message ?: e::class.simpleName}")
         }
+        val (recent, tx) = built
         val expectedSig = VaultProgram.firstSignature(tx)
         // Persist the signed transaction identity before the first network side effect. A crash
         // after this save may require reconciliation, but it can never duplicate the bank.
@@ -162,33 +178,73 @@ class Reflex(
             BankEntry(
                 sellSignature, mint, profit, amount, expectedSig, BankEntry.Status.Pending,
                 "Submission may be in flight; verify this signature before retrying", sellTime, now, late,
+                lastValidBlockHeight = recent.lastValidBlockHeight,
+                priorBankSignatures = priorBankSignatures,
             ),
         )
         store.save(state)
         return try {
             val sig = chain.send(tx)
-            if (chain.confirm(sig)) record(BankEntry.Status.Confirmed, sig) else record(BankEntry.Status.Failed, sig, "Not confirmed in time; it may still land")
+            if (chain.confirm(sig)) {
+                record(BankEntry.Status.Confirmed, sig)
+            } else {
+                val unresolved = state.log.first { it.sellSignature == sellSignature }.copy(
+                    bankSignature = expectedSig,
+                    reason = "Not confirmed yet; Kept will reconcile this signature before any retry",
+                )
+                state = state.withLog(unresolved)
+                store.save(state)
+                unresolved
+            }
         } catch (e: Exception) {
-            // sendTransaction can fail after the node accepted the transaction. Keep the locally
-            // derived signature so this attempt is never retried without chain reconciliation.
-            record(BankEntry.Status.Failed, expectedSig, "Submission uncertain; verify this signature: ${e.message ?: e::class.simpleName}")
+            // sendTransaction can fail after the node accepted the transaction. Keep this as a
+            // pending intent until the chain proves it failed or its blockhash expires.
+            val unresolved = state.log.first { it.sellSignature == sellSignature }.copy(
+                bankSignature = expectedSig,
+                reason = "Submission uncertain; reconciling signature: ${e.message ?: e::class.simpleName}",
+            )
+            state = state.withLog(unresolved)
+            store.save(state)
+            unresolved
         }
     }
 
-    /** Reconcile signed intents after restart without ever resubmitting them. */
+    /** Reconcile signed intents after restart without ever resubmitting a transaction that can land. */
     private suspend fun reconcilePendingLocked(): List<BankEntry> {
-        val confirmed = ArrayList<BankEntry>()
+        val resolved = ArrayList<BankEntry>()
         for (pending in state.log.filter { it.status == BankEntry.Status.Pending }) {
             val signature = pending.bankSignature ?: continue
-            if (runCatching { chain.confirm(signature) }.getOrDefault(false)) {
-                val entry = pending.copy(status = BankEntry.Status.Confirmed, reason = null)
-                state = state.withLog(entry)
+            val status = runCatching { chain.signatureStatus(signature) }.getOrNull() ?: continue
+            if (status == Rpc.SignatureStatus.Confirmed) {
+                val confirmed = pending.copy(status = BankEntry.Status.Confirmed, reason = null)
+                state = state.withLog(confirmed)
                 store.save(state)
-                onBank(entry)
-                confirmed += entry
+                onBank(confirmed)
+                resolved += confirmed
+                continue
             }
+            val expired = pending.lastValidBlockHeight?.let { last ->
+                status == Rpc.SignatureStatus.Missing &&
+                    runCatching { chain.blockHeight() > last }.getOrDefault(false)
+            } == true
+            if (status != Rpc.SignatureStatus.Failed && !expired) continue
+
+            // This signature cannot land later. Preserve it in the audit trail and make exactly
+            // one retry eligible. If the process dies now, retrySafeFailedLocked resumes safely.
+            val retryable = pending.copy(
+                bankSignature = null,
+                status = BankEntry.Status.Failed,
+                reason = if (expired) {
+                    "Previous signed attempt expired before landing; retrying safely"
+                } else {
+                    "Previous signed attempt failed on chain; retrying safely"
+                },
+                priorBankSignatures = (pending.priorBankSignatures + signature).distinct(),
+            )
+            state = state.withLog(retryable)
+            store.save(state)
         }
-        return confirmed
+        return resolved
     }
 
     /** Retry only SOL banks that failed before a signed transaction could have been submitted. */
@@ -201,7 +257,7 @@ class Reflex(
         for (f in state.log.filter {
             it.status == BankEntry.Status.Failed && it.bankSignature == null && it.asset == "SOL"
         }) {
-            out += bank(f.sellSignature, f.mint, f.profitLamports, f.sellTime)
+            out += bank(f.sellSignature, f.mint, f.profitLamports, f.sellTime, f.priorBankSignatures)
         }
         return out
     }
