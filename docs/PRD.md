@@ -1,6 +1,6 @@
 # Kept: product requirements
 
-Hackathon: CLOCK IN (Solana Mobile × RadiantsDAO). Deadline **2026-10-09 06:59 UTC** (Oct 8, 23:59 PT).
+Hackathon: CLOCK IN (Solana Mobile × RadiantsDAO). Deadline **2026-10-12 23:59 UTC** (extended from Oct 9).
 Status: locked 2026-10-04. Spike passed (see `docs/spikes/core-assumptions.md`).
 
 ## 1. One line

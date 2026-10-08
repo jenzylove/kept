@@ -67,6 +67,14 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
             style = MaterialTheme.typography.bodyLarge, color = c.dim,
         )
         Spacer(Modifier.height(24.dp))
+        if (app.kept.BuildConfig.CLUSTER != "mainnet-beta") {
+            Notice(
+                "This build runs on Solana devnet. In app swaps use Jupiter, which only runs on mainnet. Trade with any other app or script from this wallet: Kept still banks every win.",
+                isError = false,
+            )
+            Spacer(Modifier.height(40.dp))
+            return@Column
+        }
         Chips(listOf(true to "Buy", false to "Sell"), buying, { true }) { buying = it; amount = ""; quote = null }
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(

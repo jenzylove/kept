@@ -2,7 +2,7 @@
 
 **Rule:** a box is ticked only when the proof in its row exists (a test name, a transaction link, a screenshot path, a URL). No proof, no tick. Re-read this file at every phase boundary. Anything that changes scope is written into `docs/PRD.md` first.
 
-Deadline: **2026-10-09 06:59 UTC**. Target: submit by 2026-10-08 18:00 UTC (13 h buffer).
+Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026-10-12 12:00 UTC (12 h buffer).
 
 ## Phase 0. Spike (Oct 4) ✅
 
