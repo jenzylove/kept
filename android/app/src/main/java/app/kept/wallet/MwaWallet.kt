@@ -46,6 +46,8 @@ class MwaWallet(
     private val sender: ActivityResultSender,
     private val prefs: Prefs,
     private val mainnet: Boolean,
+    /** The cluster's current slot, sent as minContextSlot. */
+    private val currentSlot: suspend () -> Long,
 ) : MainWallet {
     private val sessionLock = Mutex()
 
@@ -92,8 +94,11 @@ class MwaWallet(
     }
 
     override suspend fun signAndSend(unsigned: ByteArray): String {
+        // Phantom rejects sign_and_send without a numeric minContextSlot (the MWA spec says optional).
+        val minSlot = runCatching { currentSlot() }.getOrNull()?.takeIf { it in 1..Int.MAX_VALUE.toLong() }?.toInt()
+            ?: throw WalletRejected("Couldn't read the network's current slot. Check your connection and retry.")
         val params = TransactionParams(
-            minContextSlot = null,
+            minContextSlot = minSlot,
             commitment = "confirmed",
             skipPreflight = false,
             maxRetries = 3,

@@ -19,6 +19,7 @@ const ALLOW = new Set([
   'getTokenAccountsByOwner',
   'getTokenAccountBalance',
   'getBlockTime',
+  'getSlot',
   'sendTransaction',
   'simulateTransaction',
   'getMinimumBalanceForRentExemption',

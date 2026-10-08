@@ -115,6 +115,12 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         return null
     }
 
+    /** The cluster's current slot at confirmed commitment. */
+    suspend fun slot(): Long {
+        val cfg = buildJsonObject { put("commitment", "confirmed") }
+        return call("getSlot", buildJsonArray { add(cfg) }).jsonPrimitive.content.toLong()
+    }
+
     suspend fun latestBlockhash(): String = latestBlockhashInfo().blockhash
 
     suspend fun latestBlockhashInfo(): BlockhashInfo {

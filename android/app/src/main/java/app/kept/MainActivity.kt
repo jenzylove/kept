@@ -62,7 +62,7 @@ class MainActivity : FragmentActivity() {
                 kept.rpc.send(signed)
             }
         } else {
-            MwaWallet(sender, kept.prefs, mainnet = BuildConfig.CLUSTER == "mainnet-beta")
+            MwaWallet(sender, kept.prefs, mainnet = BuildConfig.CLUSTER == "mainnet-beta", currentSlot = { kept.rpc.slot() })
         }
 
         if (Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
