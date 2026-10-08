@@ -73,6 +73,8 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
     }
 
     data class SigInfo(val signature: String, val slot: Long, val failed: Boolean, val blockTime: Long?)
+    data class BlockhashInfo(val blockhash: String, val lastValidBlockHeight: Long)
+    enum class SignatureStatus { Confirmed, Failed, Processing, Missing }
 
     suspend fun signatures(address: String, limit: Int = 100, before: String? = null, until: String? = null): List<SigInfo> {
         val cfg = buildJsonObject {
@@ -113,10 +115,37 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         return null
     }
 
-    suspend fun latestBlockhash(): String {
+    suspend fun latestBlockhash(): String = latestBlockhashInfo().blockhash
+
+    suspend fun latestBlockhashInfo(): BlockhashInfo {
         val cfg = buildJsonObject { put("commitment", "confirmed") }
         val r = call("getLatestBlockhash", buildJsonArray { add(cfg) }).jsonObject
-        return r["value"]!!.jsonObject["blockhash"]!!.jsonPrimitive.content
+        val value = r["value"]!!.jsonObject
+        return BlockhashInfo(
+            value["blockhash"]!!.jsonPrimitive.content,
+            value["lastValidBlockHeight"]!!.jsonPrimitive.long(),
+        )
+    }
+
+    suspend fun blockHeight(): Long {
+        val cfg = buildJsonObject { put("commitment", "confirmed") }
+        return call("getBlockHeight", buildJsonArray { add(cfg) }).jsonPrimitive.long()
+    }
+
+    suspend fun signatureStatus(signature: String): SignatureStatus {
+        val cfg = buildJsonObject { put("searchTransactionHistory", true) }
+        val r = call(
+            "getSignatureStatuses",
+            buildJsonArray { add(buildJsonArray { add(JsonPrimitive(signature)) }); add(cfg) },
+        ).jsonObject
+        val status = r["value"]!!.jsonArray[0]
+        if (status !is JsonObject) return SignatureStatus.Missing
+        val err = status["err"]
+        if (err != null && err !is JsonNull) return SignatureStatus.Failed
+        return when (status["confirmationStatus"]?.jsonPrimitive?.contentOrNull) {
+            "confirmed", "finalized" -> SignatureStatus.Confirmed
+            else -> SignatureStatus.Processing
+        }
     }
 
     suspend fun balance(address: String): Long {
@@ -124,6 +153,10 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         val r = call("getBalance", buildJsonArray { add(JsonPrimitive(address)); add(cfg) }).jsonObject
         return r["value"]!!.jsonPrimitive.long()
     }
+
+    suspend fun minimumBalanceForRentExemption(accountSize: Int): Long =
+        call("getMinimumBalanceForRentExemption", buildJsonArray { add(JsonPrimitive(accountSize)) })
+            .jsonPrimitive.long()
 
     /** Raw account data, or null if the account doesn't exist. */
     suspend fun accountData(address: String): ByteArray? {
@@ -152,6 +185,28 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
             put("maxRetries", 3)
         }
         return call("sendTransaction", buildJsonArray { add(JsonPrimitive(base64Tx)); add(cfg) }).jsonPrimitive.content
+    }
+
+    /** Fail closed before opening a wallet approval for a transaction the current cluster rejects. */
+    suspend fun simulateUnsigned(transaction: ByteArray) =
+        simulate(java.util.Base64.getEncoder().encodeToString(transaction), verifySignatures = false)
+
+    /** Verify and simulate a locally signed transaction before broadcasting it. */
+    suspend fun simulateSigned(base64Transaction: String) = simulate(base64Transaction, verifySignatures = true)
+
+    private suspend fun simulate(base64Transaction: String, verifySignatures: Boolean) {
+        val cfg = buildJsonObject {
+            put("encoding", "base64")
+            put("sigVerify", verifySignatures)
+            put("replaceRecentBlockhash", false)
+            put("commitment", "confirmed")
+        }
+        val value = call("simulateTransaction", buildJsonArray { add(JsonPrimitive(base64Transaction)); add(cfg) })
+            .jsonObject["value"]!!.jsonObject
+        val err = value["err"]
+        if (err != null && err !is JsonNull) {
+            throw RpcException(-3, "Transaction simulation failed: $err", value["logs"])
+        }
     }
 
     /** Wait until the signature is confirmed. Returns false on timeout, throws if the transaction failed. */

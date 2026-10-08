@@ -160,6 +160,7 @@ private fun Receipt(e: BankEntry, now: Long) {
     val c = Kept.colors
     val ctx = LocalContext.current
     val (label, color) = when (e.status) {
+        BankEntry.Status.Pending -> "checking chain" to c.dim
         BankEntry.Status.Confirmed -> "+${fmtSol(e.amountLamports)} SOL" to c.brass
         BankEntry.Status.Failed -> "failed" to c.loss
         BankEntry.Status.NoVault -> "not banked" to c.dim
@@ -212,7 +213,7 @@ private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long,
     val v = s.vault!!
     var amount by remember { mutableStateOf("") }
     var toTrading by remember { mutableStateOf(false) }
-    val lamports = ((amount.toDoubleOrNull() ?: 0.0) * 1e9).toLong()
+    val lamports = solInputToLamports(amount)
     val spendable = (s.vaultLamports - RENT_RESERVE).coerceAtLeast(0)
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -232,7 +233,7 @@ private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long,
             }
         },
         confirmButton = {
-            TextButton(onClick = { onRequest(lamports, toTrading) }, enabled = lamports > 0 && lamports <= spendable) { Text("Request", color = c.brass) }
+            TextButton(onClick = { lamports?.let { onRequest(it, toTrading) } }, enabled = lamports != null && lamports <= spendable) { Text("Request", color = c.brass) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Not now", color = c.dim) } },
     )
@@ -267,7 +268,7 @@ private fun SkrSection(vm: AppViewModel, s: AppState, v: VaultProgram.VaultState
 private fun FundDialog(onDismiss: () -> Unit, onSend: (Long) -> Unit) {
     val c = Kept.colors
     var amount by remember { mutableStateOf("0.1") }
-    val lamports = ((amount.toDoubleOrNull() ?: 0.0) * 1e9).toLong()
+    val lamports = solInputToLamports(amount)
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = c.raised,
@@ -283,7 +284,7 @@ private fun FundDialog(onDismiss: () -> Unit, onSend: (Long) -> Unit) {
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onSend(lamports) }, enabled = lamports > 0) { Text("Send", color = c.brass) } },
+        confirmButton = { TextButton(onClick = { lamports?.let(onSend) }, enabled = lamports != null) { Text("Send", color = c.brass) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Not now", color = c.dim) } },
     )
 }

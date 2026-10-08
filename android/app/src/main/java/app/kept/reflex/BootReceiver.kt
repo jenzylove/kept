@@ -10,6 +10,6 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val app = context.applicationContext as KeptApp
-        if (app.prefs.vaultReady && app.tradingKey.exists()) WatcherService.start(context)
+        if (app.prefs.vaultReady && app.prefs.reflexEnabled && app.tradingKey.exists()) WatcherService.start(context)
     }
 }

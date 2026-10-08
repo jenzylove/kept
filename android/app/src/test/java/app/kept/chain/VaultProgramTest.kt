@@ -68,6 +68,15 @@ class VaultProgramTest {
     }
 
     @Test
+    fun vaultAccountSizeAndFundingGuardMatchTheRealDevnetAccount() {
+        val raw = Base64.getDecoder().decode(javaClass.getResource("/vault-devnet.b64")!!.readText().trim())
+        assertEquals(raw.size, VaultProgram.VAULT_ACCOUNT_SIZE)
+        assertEquals(1_534_080L, VaultProgram.vaultOpenShortfall(balance = 0, rent = 1_529_080L))
+        assertEquals(34_080L, VaultProgram.vaultOpenShortfall(balance = 1_500_000L, rent = 1_529_080L))
+        assertEquals(0L, VaultProgram.vaultOpenShortfall(balance = 1_534_080L, rent = 1_529_080L))
+    }
+
+    @Test
     fun decodesTheRealDevnetVaultAccount() {
         val raw = Base64.getDecoder().decode(javaClass.getResource("/vault-devnet.b64")!!.readText().trim())
         val v = program.decodeVault(raw)

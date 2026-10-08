@@ -36,6 +36,11 @@ class Prefs(context: Context) {
         get() = p.getBoolean("vault_ready", false)
         set(v) = p.edit().putBoolean("vault_ready", v).apply()
 
+    /** User consent to run the background reflex, independent of whether a vault exists. */
+    var reflexEnabled: Boolean
+        get() = if (p.contains("reflex_enabled")) p.getBoolean("reflex_enabled", false) else vaultReady
+        set(v) = p.edit().putBoolean("reflex_enabled", v).apply()
+
     var onboarded: Boolean
         get() = p.getBoolean("onboarded", false)
         set(v) = p.edit().putBoolean("onboarded", v).apply()

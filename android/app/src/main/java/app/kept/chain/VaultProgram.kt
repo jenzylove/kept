@@ -155,6 +155,12 @@ class VaultProgram(programId: String) {
     companion object {
         val SYSTEM_PROGRAM = PublicKey("11111111111111111111111111111111")
         private val VAULT_SEED = "vault".toByteArray()
+        /** Eight-byte discriminator plus the current Anchor Vault account fields. */
+        const val VAULT_ACCOUNT_SIZE = 173
+        private const val OPEN_FEE_LAMPORTS = 5_000L
+
+        fun vaultOpenShortfall(balance: Long, rent: Long): Long =
+            (rent + OPEN_FEE_LAMPORTS - balance).coerceAtLeast(0)
 
         fun transfer(from: PublicKey, to: PublicKey, lamports: Long): Instruction = TransferInstruction(from, to, lamports)
 
@@ -163,6 +169,23 @@ class VaultProgram(programId: String) {
             val tx = Transaction(blockhash, instructions, payer)
             signers.forEach { tx.sign(it) }
             return java.util.Base64.getEncoder().encodeToString(tx.serialize())
+        }
+
+        /** Read the first signature from a signed wire transaction before submitting it to RPC. */
+        fun firstSignature(base64Tx: String): String {
+            val raw = java.util.Base64.getDecoder().decode(base64Tx)
+            var count = 0
+            var shift = 0
+            var cursor = 0
+            while (true) {
+                require(cursor < raw.size && shift <= 21) { "invalid signature count" }
+                val b = raw[cursor++].toInt() and 0xFF
+                count = count or ((b and 0x7F) shl shift)
+                if (b and 0x80 == 0) break
+                shift += 7
+            }
+            require(count > 0 && raw.size >= cursor + 64) { "signed transaction has no signature" }
+            return Base58.encode(raw.copyOfRange(cursor, cursor + 64))
         }
 
         /**

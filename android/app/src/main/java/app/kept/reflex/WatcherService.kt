@@ -14,6 +14,7 @@ import app.kept.MainActivity
 import app.kept.R
 import app.kept.chain.SkrStaking
 import app.kept.trade.Jupiter
+import org.sol4k.PublicKey
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,12 +62,25 @@ class WatcherService : Service() {
         val app = application as KeptApp
         val key = app.tradingKey.load()
         if (key == null) { stopSelf(); return }
+        val owner = runCatching { PublicKey(app.prefs.mainWallet ?: "") }.getOrNull()
+        val onChainVault = owner?.let { ownerKey ->
+            runCatching {
+                app.rpc.accountData(app.program.vaultAddress(ownerKey).toBase58())?.let(app.program::decodeVault)
+            }.getOrNull()
+        }
+        if (owner == null || onChainVault == null || onChainVault.owner != owner || onChainVault.banker != key.publicKey) {
+            app.prefs.reflexEnabled = false
+            setStatus("Paused: vault ownership does not match this device")
+            stopSelf()
+            return
+        }
         val reflex = Reflex(
             chain = RpcChain(app.rpc),
             signer = key,
             program = app.program,
             store = app.reflexStore,
-            rules = { app.prefs.rules() },
+            // SOL only until the SKR path proves it cannot capture unrelated wallet balances.
+            rules = { app.prefs.rules()?.copy(asset = BankAsset.Sol) },
             onBank = { notifyBank(it) },
             skrBank = JupiterSkrBank(Jupiter(), app.rpc, key, app.program),
             skrTier = {
@@ -144,6 +158,7 @@ class WatcherService : Service() {
         val nm = getSystemService(android.app.NotificationManager::class.java)
         val sol = String.format(Locale.US, "%.4f", e.amountLamports / 1e9)
         val (title, text) = when (e.status) {
+            BankEntry.Status.Pending -> return
             BankEntry.Status.Confirmed -> if (e.asset == "SKR") {
                 "Staked SKR for $sol SOL" to (if (e.stakedSkrRaw > 0) "Your share of a win on ${short(e.mint)} is now staked SKR in your vault." else "Bought SKR with your share. It will be staked with your next win.")
             } else "Banked $sol SOL" to "Kept your share of a win on ${short(e.mint)}${if (e.late) " (found late)" else ""}."

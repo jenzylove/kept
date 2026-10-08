@@ -45,14 +45,14 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
     val inMint = if (buying) Jupiter.SOL else mint.trim()
     val outMint = if (buying) mint.trim() else Jupiter.SOL
     // Buy: amount is SOL. Sell: amount is a share of what the wallet holds (percent).
-    val rawIn: Long = if (buying) ((amount.toDoubleOrNull() ?: 0.0) * 1e9).toLong() else (held * (amount.toDoubleOrNull() ?: 0.0) / 100.0).toLong()
+    val rawIn: Long? = if (buying) solInputToLamports(amount) else percentageOf(held, amount)
 
     LaunchedEffect(mint) {
         if (mint.trim().length in 32..44) vm.tradingTokenBalance(mint.trim()) { held = it }
     }
     LaunchedEffect(inMint, outMint, rawIn) {
         quote = null; quoteError = null
-        if (mint.trim().length !in 32..44 || rawIn <= 0) return@LaunchedEffect
+        if (mint.trim().length !in 32..44 || rawIn == null) return@LaunchedEffect
         delay(500) // let typing settle
         runCatching { vm.quote(inMint, outMint, rawIn) }.onSuccess { quote = it }.onFailure { quoteError = it.message?.take(160) }
     }
@@ -88,6 +88,13 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
             label = { Text(if (buying) "Spend (SOL)" else "Sell (% of what you hold)") }, shape = RoundedCornerShape(4.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = c.brass, unfocusedBorderColor = c.line, focusedLabelColor = c.brass, cursorColor = c.brass),
         )
+        if (amount.isNotBlank() && rawIn == null) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (buying) "Enter a positive SOL amount with no more than 9 decimal places." else "Enter a percentage above 0 and no more than 100.",
+                style = MaterialTheme.typography.labelSmall, color = c.loss,
+            )
+        }
         if (!buying) {
             Spacer(Modifier.height(10.dp))
             Chips(listOf("25" to "25%", "50" to "50%", "100" to "All"), amount, { held > 0 }) { amount = it }
