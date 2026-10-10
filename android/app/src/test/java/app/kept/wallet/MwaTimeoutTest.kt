@@ -25,4 +25,13 @@ class MwaTimeoutTest {
         assertTrue(error!!.message!!.contains("no submitted signature", ignoreCase = true))
         assertTrue(error.message!!.contains("Do not retry", ignoreCase = true))
     }
+
+    @Test
+    fun onlyARefusalAtTheAuthorizationStepIsAskedAgain() {
+        val refused = java.util.concurrent.ExecutionException(RuntimeException("-1/authorization request failed"))
+        assertTrue(isIdentityRefusal(refused))
+        assertTrue(!isIdentityRefusal(RuntimeException("sign request declined")))
+        assertTrue(!isIdentityRefusal(java.util.concurrent.CancellationException()))
+        assertTrue(!isIdentityRefusal(null))
+    }
 }

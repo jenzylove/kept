@@ -31,6 +31,10 @@ internal suspend fun <T> withWalletOperationTimeout(
     )
 }
 
+/** True when the wallet declined at the authorization step, before any request to sign reached the user. */
+internal fun isIdentityRefusal(e: Throwable?): Boolean =
+    generateSequence(e) { it.cause }.take(8).any { it.message?.contains("authorization request failed", ignoreCase = true) == true }
+
 internal fun mwaConnectionIdentity() = ConnectionIdentity(
     identityUri = Uri.parse(MWA_IDENTITY_URI),
     iconUri = Uri.parse(MWA_ICON_RELATIVE_URI),
@@ -64,8 +68,19 @@ class MwaWallet(
     private suspend fun <T> perform(operation: suspend (MobileWalletAdapter) -> TransactionResult<T>): TransactionResult.Success<T> =
         withWalletOperationTimeout {
             sessionLock.withLock {
-            val adapter = newAdapter()
-            when (val result = operation(adapter)) {
+            warmIdentity()
+            var adapter = newAdapter()
+            var result = operation(adapter)
+            // A wallet app that has just started gives our site one second to prove this app is ours,
+            // and on a phone network that often runs out. It refuses before showing anything, so
+            // nothing was signed and asking once more is safe; by then the wallet is awake.
+            if (result is TransactionResult.Failure && isIdentityRefusal(result.e)) {
+                android.util.Log.w("KeptMwa", "wallet could not verify the app in time, asking once more")
+                warmIdentity()
+                adapter = newAdapter()
+                result = operation(adapter)
+            }
+            when (result) {
                 is TransactionResult.Success -> {
                     prefs.walletAuthToken = adapter.authToken ?: result.authResult.authToken
                     result
@@ -86,6 +101,19 @@ class MwaWallet(
             }
         }
         }
+
+    /** Fetch the file wallets verify us against, so the network path to it is warm. Never fails the operation. */
+    private suspend fun warmIdentity() {
+        runCatching {
+            kotlinx.coroutines.withTimeoutOrNull(2_500) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val c = java.net.URL("$MWA_IDENTITY_URI/.well-known/assetlinks.json").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 2_000; c.readTimeout = 2_000
+                    try { c.inputStream.use { it.readBytes() } } finally { c.disconnect() }
+                }
+            }
+        }
+    }
 
     override suspend fun connect(): PublicKey {
         val result = perform { it.connect(sender) }
