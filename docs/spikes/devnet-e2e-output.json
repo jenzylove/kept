@@ -1,8 +1,8 @@
 {
-  "mint": "6XSBxEY19yP7AhgGzH2T42m1ZxWPVFJm9RCJ9d6Z5KiB",
-  "buy": "2trgYgj3Gx6FRWW9gwj1wFRr8Y3RmdwdTHrn8bPTJ51bhFiqzuhkh55xHsHP6Ub5Ad9oy6mzbuFpKe6Vfm78dTM9",
-  "sell": "oEK7r5CcRND3EMyH9ATGMaNV6pQ4XM3pexXAwukCWyxYd4dao3UDjLeMErBDQ4TjQNhhugnECvPQkmgiESfSeAi",
+  "mint": "3vmXAAmY4t8Z2raDX8kKEAK5bbMnmWEGAMLTKHx9qEVx",
+  "buy": "267NXhLxdJ1ijMCBYLFpbbcx31VvzAm4D6Ev65Gtkm4smNnJN6dUyHo4DPyzm4nrMRt71RGQGzeRhkDdumfGwjJb",
+  "sell": "UrCuCq4AvbEJRgSezxicr4b11NDSoDsP43c5oxQLLdoNWMz48nHWFyFcSPtsrfVaUmpoxfgFwgFc4cbKuZfDVXJ",
   "buyLamports": 20000000,
-  "sellLamports": 60000000,
-  "sellConfirmedAt": "2026-10-10T01:35:37.649Z"
+  "sellLamports": 50000000,
+  "sellConfirmedAt": "2026-10-10T08:07:54.233Z"
 }
