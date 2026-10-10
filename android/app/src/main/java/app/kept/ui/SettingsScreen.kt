@@ -53,12 +53,22 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
             Spacer(Modifier.height(20.dp))
             Label("Bank wins as")
             Spacer(Modifier.height(8.dp))
-            Chips(listOf("sol" to "SOL"), s.bankAsset, { true }) { vm.setBankAsset(it) }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Staked SKR banking is temporarily disabled while its balance boundaries are hardened.",
-                style = MaterialTheme.typography.labelSmall, color = c.dim,
-            )
+            if (!testing) {
+                Chips(listOf("sol" to "SOL", "skr" to "Staked SKR"), s.bankAsset, { it == "sol" || tier }) { vm.setBankAsset(it) }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    if (tier) "Staked SKR swaps your share of each win into SKR and stakes it in your vault. It only ever stakes the SKR it just bought, never SKR you hold yourself. Small buys wait for the next win until they reach 1 SKR."
+                    else "Staked SKR needs ${SKR_TIER_RAW / 1_000_000} SKR in your wallet.",
+                    style = MaterialTheme.typography.labelSmall, color = c.dim,
+                )
+            } else {
+                Chips(listOf("sol" to "SOL"), s.bankAsset, { true }) { vm.setBankAsset(it) }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Staked SKR banking only works on mainnet builds. This build banks every win as SOL.",
+                    style = MaterialTheme.typography.labelSmall, color = c.dim,
+                )
+            }
             Spacer(Modifier.height(20.dp))
             Label("Wait before money leaves")
             Spacer(Modifier.height(8.dp))

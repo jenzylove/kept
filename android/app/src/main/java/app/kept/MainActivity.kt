@@ -136,9 +136,7 @@ private fun TabBar(selected: Tab, onSelect: (Tab) -> Unit) {
     Column(Modifier.fillMaxWidth().background(c.ink).navigationBarsPadding()) {
         Hairline()
         Row(Modifier.fillMaxWidth()) {
-            // In-app trading stays hidden until Jupiter-returned transactions are semantically
-            // verified before the device key signs them.
-            Tab.entries.filter { it != Tab.Trade }.forEach { t ->
+            Tab.entries.forEach { t ->
                 val on = t == selected
                 Column(Modifier.weight(1f).clickable { onSelect(t) }.padding(top = 12.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(t.label, style = MaterialTheme.typography.labelLarge, color = if (on) c.bone else c.dim)

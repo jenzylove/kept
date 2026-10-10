@@ -80,9 +80,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val operationActive = AtomicBoolean(false)
 
     init {
-        // SKR banking is disabled until the swap/stake path can prove it never captures unrelated
-        // SKR already held by the trading wallet.
-        if (kept.prefs.bankAsset != "sol") kept.prefs.bankAsset = "sol"
+        // Staked SKR banking only exists on mainnet; any other build banks as SOL.
+        if (!MAINNET && kept.prefs.bankAsset != "sol") kept.prefs.bankAsset = "sol"
         _state.update { it.copy(mainWallet = kept.prefs.mainWallet, tradingWallet = kept.tradingKey.load()?.publicKey?.toBase58()) }
         refresh()
         viewModelScope.launch { while (true) { delay(4_000); tick() } }
@@ -334,7 +333,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setBankAsset(asset: String) {
-        require(asset == "sol") { "Staked SKR banking is disabled until its balance boundaries are verified" }
+        if (asset != "sol" && asset != "skr") return
+        if (asset == "skr") {
+            val why = when {
+                !MAINNET -> "Staked SKR banking only works on mainnet."
+                _state.value.skrRaw < kept.skrTierRaw -> "Staked SKR banking needs ${kept.skrTierRaw / 1_000_000} SKR in your wallet."
+                else -> null
+            }
+            if (why != null) { _state.update { it.copy(error = why) }; return }
+        }
         kept.prefs.bankAsset = asset
         _state.update { it.copy(bankAsset = asset) }
     }
@@ -399,7 +406,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun quote(inMint: String, outMint: String, amount: Long) = jupiter.quote(inMint, outMint, amount)
 
     fun swap(quote: Jupiter.Quote, label: String) = work(label) {
-        error("In-app trading is disabled until Jupiter transactions are verified before signing")
+        if (!MAINNET) error("In app trading only works on mainnet")
         val key = kept.tradingKey.load() ?: error("No trading wallet")
         val tx = jupiter.signedSwap(quote, key)
         rpc.simulateSigned(tx)
@@ -421,6 +428,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun exportTradingKey(): String? = kept.tradingKey.exportBase58()
 
     companion object {
+        val MAINNET get() = BuildConfig.CLUSTER == "mainnet-beta"
         const val NETWORK_ERROR = "Couldn't reach the network:"
         const val SKR_MINT = "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3"
         fun short(s: String) = if (s.length > 10) s.take(4) + "…" + s.takeLast(4) else s
