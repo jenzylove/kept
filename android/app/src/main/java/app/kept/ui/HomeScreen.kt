@@ -4,6 +4,13 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,14 +27,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,22 +59,26 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
     var withdrawOpen by rememberSaveable { mutableStateOf(false) }
     var fundOpen by rememberSaveable { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 28.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Label("Your vault")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.width(8.dp).height(8.dp).background(if (s.reflexOn) c.ok else c.dim, CircleShape))
+            Text("Kept", style = MaterialTheme.typography.headlineMedium, color = c.text)
+            Row(
+                Modifier.background(c.glass, CircleShape).border(1.dp, Color.White, CircleShape).padding(start = 14.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(8.dp).background(if (s.reflexOn) c.ok else c.dim, CircleShape))
                 Spacer(Modifier.width(8.dp))
-                Text(if (s.reflexOn) "Kept is on" else "Kept is off", style = MaterialTheme.typography.labelSmall, color = c.dim)
+                Text(if (s.reflexOn) "Watching" else "Paused", style = MaterialTheme.typography.labelSmall, color = c.text)
                 Spacer(Modifier.width(8.dp))
                 Switch(
-                    checked = s.reflexOn, onCheckedChange = { vm.setReflex(it) },
-                    colors = SwitchDefaults.colors(checkedTrackColor = c.brass, checkedThumbColor = c.ink, uncheckedTrackColor = c.raised, uncheckedThumbColor = c.dim, uncheckedBorderColor = c.line),
+                    checked = s.reflexOn, onCheckedChange = { vm.setReflex(it) }, modifier = Modifier.scale(0.78f),
+                    colors = SwitchDefaults.colors(checkedTrackColor = c.accent, checkedThumbColor = Color.White, uncheckedTrackColor = c.raised, uncheckedThumbColor = c.dim, uncheckedBorderColor = c.line),
                 )
             }
         }
-        Spacer(Modifier.height(10.dp))
-        // Count up to the new total, and flash brass for a moment when money has just arrived.
+        Spacer(Modifier.height(18.dp))
+
+        // Count up to the new total, and glow for a moment when money has just arrived.
         val shown by animateFloatAsState(s.vaultLamports.toFloat(), tween(900), label = "vault")
         var flash by remember { mutableStateOf(false) }
         var last by remember { mutableStateOf(-1L) }
@@ -81,54 +88,68 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
             last = s.vaultLamports
             if (rose) { flash = true; delay(1600); flash = false }
         }
-        val numberColor by animateColorAsState(if (flash) c.brass else c.bone, tween(700), label = "flash")
-        Text(fmtSol(shown.toLong()), style = MaterialTheme.typography.displayLarge.merge(NumberStyle), color = numberColor)
-        Text(
-            if (v == null) "SOL" else "SOL kept across ${v.bankCount} ${if (v.bankCount == 1L) "win" else "wins"}",
-            style = MaterialTheme.typography.bodyLarge, color = c.dim,
-        )
+        val numberColor by animateColorAsState(if (flash) c.accent else c.text, tween(700), label = "flash")
+        val series = remember(home, v?.bankBps) { home?.let { Engine.series(it.mirror, v?.bankBps ?: 5000) } }
+        val wins = v?.bankCount ?: 0L
+        // One glass step for each win kept. Before the trade history has loaded, the count alone draws them.
+        val steps = remember(series, wins) {
+            series?.let { stairSteps(it.kept) }?.takeIf { it.isNotEmpty() }
+                ?: if (wins > 0) (1..minOf(wins, 6L).toInt()).map { 0.18f + 0.82f * it / minOf(wins, 6L).toInt() } else emptyList()
+        }
 
-        home?.let { r ->
-            val series = remember(r) { Engine.series(r.mirror, v?.bankBps ?: 5000) }
-            if (series.kept.size >= 2) {
-                Spacer(Modifier.height(22.dp))
-                Staircase(series.wallet, series.kept, height = 120.dp)
+        Panel(padding = 0.dp) {
+            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
+                Label("In your vault")
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(fmtSol(shown.toLong()), style = MaterialTheme.typography.displayLarge.merge(NumberStyle), color = numberColor)
+                    Text("SOL", style = MaterialTheme.typography.titleMedium, color = c.dim, modifier = Modifier.padding(start = 10.dp, bottom = 11.dp))
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    when {
+                        v == null -> ""
+                        wins == 0L -> "Nothing kept yet. Your first win builds the first step."
+                        else -> "Kept from $wins ${if (wins == 1L) "win" else "wins"}. It only goes up."
+                    },
+                    style = MaterialTheme.typography.bodyMedium, color = c.dim,
+                )
+            }
+            GlassStairs(steps, Modifier.padding(horizontal = 18.dp).padding(top = 10.dp), height = 176.dp)
+            if (v != null) {
+                Hairline()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 15.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Keeps ${v.bankBps / 100}% of each win", style = MaterialTheme.typography.labelSmall, color = c.text)
+                    if (wins > 0) {
+                        Text("Share", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable {
+                            ShareCard.share(ctx, home?.mirror?.won?.toLong() ?: 0L, v.totalBanked, wins.toInt(), series?.wallet ?: emptyList(), series?.kept ?: emptyList())
+                        })
+                    } else {
+                        Text("${fmtDuration(v.cooldownSecs)} wait to take out", style = MaterialTheme.typography.labelSmall, color = c.dim)
+                    }
+                }
             }
         }
 
-        if (v != null && v.bankCount > 0) {
-            Spacer(Modifier.height(14.dp))
-            val r = home
-            TextButton(onClick = {
-                val series = r?.let { Engine.series(it.mirror, v.bankBps) }
-                ShareCard.share(ctx, r?.mirror?.won?.toLong() ?: 0L, v.totalBanked, v.bankCount.toInt(), series?.wallet ?: emptyList(), series?.kept ?: emptyList())
-            }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                Text("Share what I kept", color = c.brass, style = MaterialTheme.typography.labelLarge)
-            }
-        }
-
-        Spacer(Modifier.height(26.dp))
+        Spacer(Modifier.height(20.dp))
         // One clear next step until the first win is banked, then the way out.
         val needsSol = s.loaded && s.tradingLamports < MIN_TRADING_LAMPORTS
         when {
             v != null && v.hasPendingWithdraw -> PendingWithdraw(vm, s, v)
             s.vaultLamports > 0 -> KeptGhostButton("Take money out", { withdrawOpen = true }, enabled = s.busy == null)
             needsSol -> {
-                Label("Next step")
+                Text("Next, put some SOL in your trading wallet.", style = MaterialTheme.typography.headlineMedium, color = c.text)
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "Your vault is open. Now put some SOL in your trading wallet. That is the wallet you trade from, and it lives on this phone.",
-                    style = MaterialTheme.typography.bodyLarge, color = c.bone,
-                )
-                Spacer(Modifier.height(14.dp))
+                Text("That is the wallet you trade from. It lives on this phone.", style = MaterialTheme.typography.bodyLarge, color = c.dim)
+                Spacer(Modifier.height(16.dp))
                 KeptButton("Add SOL to trade with", { fundOpen = true }, enabled = s.busy == null)
             }
             v != null -> {
-                Label("You are set")
+                Text("You are set. Go trade.", style = MaterialTheme.typography.headlineMedium, color = c.text)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Trade from the Trade tab. Each time you sell for more than you paid, ${v.bankBps / 100}% of the profit moves here by itself. Nothing moves on a loss.",
-                    style = MaterialTheme.typography.bodyLarge, color = c.bone,
+                    "Each time you sell for more than you paid, ${v.bankBps / 100}% of the profit moves here by itself. Nothing moves on a loss.",
+                    style = MaterialTheme.typography.bodyLarge, color = c.dim,
                 )
             }
         }
@@ -139,35 +160,35 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
 
         val skr = s.skr
         if (v != null && skr != null && (skr.shares > 0 || skr.unstakingRaw > 0 || skr.vaultHeldRaw > 0)) {
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(34.dp))
             SkrSection(vm, s, v, skr)
         }
 
-        Spacer(Modifier.height(30.dp))
-        Label("Trading wallet")
+        Spacer(Modifier.height(34.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Trading wallet", style = MaterialTheme.typography.titleMedium, color = c.text)
+            if (!(needsSol && s.vaultLamports == 0L && v?.hasPendingWithdraw != true)) {
+                Text("Add SOL", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable { fundOpen = true }.padding(vertical = 4.dp))
+            }
+        }
         Spacer(Modifier.height(4.dp))
         StatRow("Balance", "${fmtSol(s.tradingLamports)} SOL")
-        s.tradingWallet?.let { StatRow("Address (tap to copy)", short(it, 5), onClick = { copyToClipboard(ctx, "Trading wallet", it) }) }
-        Spacer(Modifier.height(10.dp))
-        if (!(needsSol && s.vaultLamports == 0L && v?.hasPendingWithdraw != true)) TextButton(onClick = { fundOpen = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-            Text("Add SOL from my wallet", color = c.brass, style = MaterialTheme.typography.labelLarge)
-        }
+        s.tradingWallet?.let { StatRow("Address, tap to copy", short(it, 5), onClick = { copyToClipboard(ctx, "Trading wallet", it) }) }
         if (v != null) {
-            StatRow("Banks ${v.bankBps / 100}% of each win", "wait ${fmtDuration(v.cooldownSecs)}")
+            StatRow("Wait before money leaves the vault", fmtDuration(v.cooldownSecs))
             if (v.pendingCooldownAt > 0) StatRow("Wait shortens to ${fmtDuration(v.pendingCooldownSecs)} in", fmtCountdown(v.pendingCooldownAt - s.nowSec))
         }
 
-        Spacer(Modifier.height(30.dp))
-        Label("Receipts")
+        Spacer(Modifier.height(34.dp))
+        Text("Receipts", style = MaterialTheme.typography.titleMedium, color = c.text)
         Spacer(Modifier.height(4.dp))
         if (s.log.isEmpty()) {
             Text(
-                "Nothing banked yet. When the trading wallet sells above its cost, you'll see it here within seconds, with the transaction as proof.",
-                style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 12.dp),
+                "Nothing kept yet. When you sell for more than you paid, the receipt shows up here within seconds, with a link to prove it.",
+                style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
             )
         }
         s.log.take(30).forEach { Receipt(it, s.nowSec) }
-        Spacer(Modifier.height(40.dp))
     }
 
     if (fundOpen) FundDialog(onDismiss = { fundOpen = false }) { lamports -> fundOpen = false; vm.fundTrading(lamports) }
@@ -183,19 +204,19 @@ private fun Receipt(e: BankEntry, now: Long) {
     val c = Kept.colors
     val ctx = LocalContext.current
     val (label, color) = when (e.status) {
-        BankEntry.Status.Pending -> "checking chain" to c.dim
-        BankEntry.Status.Confirmed -> "+${fmtSol(e.amountLamports)} SOL" to c.brass
+        BankEntry.Status.Pending -> "checking" to c.dim
+        BankEntry.Status.Confirmed -> "+${fmtSol(e.amountLamports)} SOL" to c.accent
         BankEntry.Status.Failed -> "failed" to c.loss
-        BankEntry.Status.NoVault -> "not banked" to c.dim
+        BankEntry.Status.NoVault -> "not kept" to c.dim
         BankEntry.Status.TooSmall -> "too small" to c.dim
     }
     val sub = buildString {
-        append(short(e.mint)); append(" · win +${fmtSol(e.profitLamports, 3)}"); append(" · ${fmtAgo(now, e.bankedAt)}")
+        append("Win of ${fmtSol(e.profitLamports, 3)} SOL"); append(" · ${fmtAgo(now, e.bankedAt)}")
         if (e.late) append(" · found late")
         e.reason?.let { append(" · $it") }
     }
     Column(Modifier.fillMaxWidth().clickable(enabled = e.bankSignature != null) { openExplorer(ctx, "tx", e.bankSignature!!) }) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 15.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(sub, style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.weight(1f).padding(end = 12.dp))
             Text(label, style = MaterialTheme.typography.bodyLarge.merge(NumberStyle), color = color)
         }
@@ -209,24 +230,37 @@ private fun PendingWithdraw(vm: AppViewModel, s: AppState, v: VaultProgram.Vault
     val left = v.withdrawUnlockAt - s.nowSec
     val ready = left <= 0
     val isSkr = v.withdrawAsset == VaultProgram.Asset.StakedSkr
-    Column(Modifier.fillMaxWidth().background(c.raised).padding(18.dp)) {
-        Label(if (ready) (if (isSkr) "Ready to unstake" else "Ready to take out") else "Unlocks in")
+    Panel {
+        Label(if (ready) (if (isSkr) "Ready to unstake" else "Ready to take out") else "On its way out. Unlocks in")
         Spacer(Modifier.height(6.dp))
         Text(
             if (ready) (if (isSkr) "Staked SKR" else "${fmtSol(v.withdrawAmount)} SOL") else fmtCountdown(left),
-            style = MaterialTheme.typography.headlineMedium.merge(NumberStyle), color = if (ready) c.brass else c.bone,
+            style = MaterialTheme.typography.displayMedium.merge(NumberStyle), color = if (ready) c.accent else c.text,
         )
         Spacer(Modifier.height(4.dp))
         Text(
             if (isSkr) "Your staked SKR, back to your wallet" else "${fmtSol(v.withdrawAmount)} SOL to ${if (v.withdrawTo == v.owner) "your wallet" else "your trading wallet"}",
             style = MaterialTheme.typography.bodyMedium, color = c.dim,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(18.dp))
         if (ready) {
             KeptButton(if (isSkr) "Start unstaking" else "Take it out", { if (isSkr) vm.executeSkrUnstake() else vm.executeWithdraw() }, busy = s.busy != null)
             Spacer(Modifier.height(10.dp))
         }
         KeptGhostButton("Cancel, keep it in the vault", { vm.cancelWithdraw() }, enabled = s.busy == null)
+    }
+}
+
+/** A sheet of glass over the page for one small decision. */
+@Composable
+private fun Sheet(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val c = Kept.colors
+    Dialog(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(30.dp)).padding(24.dp)) {
+            Text(title, style = MaterialTheme.typography.headlineMedium, color = c.text)
+            Spacer(Modifier.height(8.dp))
+            content()
+        }
     }
 }
 
@@ -238,28 +272,17 @@ private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long,
     var toTrading by remember { mutableStateOf(false) }
     val lamports = solInputToLamports(amount)
     val spendable = s.vaultLamports
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = c.raised,
-        title = { Text("Take money out", color = c.bone) },
-        text = {
-            Column {
-                Text("It unlocks after ${fmtDuration(v.cooldownSecs)}. You can cancel while you wait.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
-                Spacer(Modifier.height(14.dp))
-                OutlinedTextField(
-                    value = amount, onValueChange = { amount = it }, singleLine = true, label = { Text("Amount in SOL (up to ${fmtSol(spendable)})") },
-                    shape = RoundedCornerShape(4.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = c.brass, unfocusedBorderColor = c.line, focusedLabelColor = c.brass, cursorColor = c.brass),
-                )
-                Spacer(Modifier.height(12.dp))
-                Chips(listOf(false to "To my wallet", true to "To trading wallet"), toTrading, { true }) { toTrading = it }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { lamports?.let { onRequest(it, toTrading) } }, enabled = lamports != null && lamports <= spendable) { Text("Request", color = c.brass) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Not now", color = c.dim) } },
-    )
+    Sheet("Take money out", onDismiss) {
+        Text("It unlocks after ${fmtDuration(v.cooldownSecs)}. You can cancel while you wait.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+        Spacer(Modifier.height(16.dp))
+        KeptField(amount, { amount = it }, "Amount in SOL, up to ${fmtSol(spendable)}", keyboard = KeyboardType.Decimal)
+        Spacer(Modifier.height(14.dp))
+        Chips(listOf(false to "To my wallet", true to "To trading wallet"), toTrading, { true }) { toTrading = it }
+        Spacer(Modifier.height(20.dp))
+        KeptButton("Start the wait", { lamports?.let { onRequest(it, toTrading) } }, enabled = lamports != null && lamports <= spendable)
+        Spacer(Modifier.height(8.dp))
+        KeptGhostButton("Not now", onDismiss)
+    }
 }
 
 /** Under this the trading wallet cannot pay for a trade and its fees. */
@@ -269,9 +292,9 @@ private const val MIN_TRADING_LAMPORTS = 2_000_000L
 private fun SkrSection(vm: AppViewModel, s: AppState, v: VaultProgram.VaultState, skr: app.kept.SkrPosition) {
     val c = Kept.colors
     val skrPending = v.hasPendingWithdraw && v.withdrawAsset == VaultProgram.Asset.StakedSkr
-    Label("Staked SKR")
+    Text("Staked SKR", style = MaterialTheme.typography.titleMedium, color = c.text)
     Spacer(Modifier.height(4.dp))
-    if (skr.shares > 0) StatRow("Staked in your vault", String.format(java.util.Locale.US, "%.2f SKR", skr.valueRaw / 1e6), valueColor = c.brass)
+    if (skr.shares > 0) StatRow("Staked in your vault", String.format(java.util.Locale.US, "%.2f SKR", skr.valueRaw / 1e6), valueColor = c.accent)
     if (skr.unstakingRaw > 0) {
         val ready = s.nowSec >= skr.unstakeStartedAt + skr.skrCooldownSecs
         StatRow("Unstaking", String.format(java.util.Locale.US, "%.2f SKR", skr.unstakingRaw / 1e6))
@@ -283,7 +306,7 @@ private fun SkrSection(vm: AppViewModel, s: AppState, v: VaultProgram.VaultState
     when {
         collectReady -> KeptButton("Send my SKR to my wallet", { vm.collectSkr() }, busy = s.busy != null)
         skr.shares > 0 && !v.hasPendingWithdraw -> KeptGhostButton("Unstake my SKR", { vm.requestSkrUnstake() }, enabled = s.busy == null)
-        skrPending -> Text("Your unstake request is in the panel above.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+        skrPending -> Text("Your unstake request is shown above.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
     }
 }
 
@@ -292,22 +315,13 @@ private fun FundDialog(onDismiss: () -> Unit, onSend: (Long) -> Unit) {
     val c = Kept.colors
     var amount by remember { mutableStateOf("0.1") }
     val lamports = solInputToLamports(amount)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = c.raised,
-        title = { Text("Add SOL to your trading wallet", color = c.bone) },
-        text = {
-            Column {
-                Text("This sends SOL from the wallet that owns your vault. Your wallet app will ask you to confirm.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
-                Spacer(Modifier.height(14.dp))
-                OutlinedTextField(
-                    value = amount, onValueChange = { amount = it }, singleLine = true, label = { Text("Amount in SOL") },
-                    shape = RoundedCornerShape(4.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = c.brass, unfocusedBorderColor = c.line, focusedLabelColor = c.brass, cursorColor = c.brass),
-                )
-            }
-        },
-        confirmButton = { TextButton(onClick = { lamports?.let(onSend) }, enabled = lamports != null) { Text("Send", color = c.brass) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Not now", color = c.dim) } },
-    )
+    Sheet("Add SOL to trade with", onDismiss) {
+        Text("This sends SOL from your connected wallet to your trading wallet. Your wallet app will ask you to confirm.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+        Spacer(Modifier.height(16.dp))
+        KeptField(amount, { amount = it }, "Amount in SOL", keyboard = KeyboardType.Decimal)
+        Spacer(Modifier.height(20.dp))
+        KeptButton("Send", { lamports?.let(onSend) }, enabled = lamports != null)
+        Spacer(Modifier.height(8.dp))
+        KeptGhostButton("Not now", onDismiss)
+    }
 }

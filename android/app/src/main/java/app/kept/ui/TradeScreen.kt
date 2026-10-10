@@ -4,7 +4,17 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,15 +73,18 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
 
     LaunchedEffect(Unit) { vm.loadHoldings() }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 28.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Label("Trade")
-            Text("${fmtSol(s.tradingLamports)} SOL to trade", style = MaterialTheme.typography.labelSmall, color = c.dim)
+            Text("Trade", style = MaterialTheme.typography.headlineMedium, color = c.text)
+            Text(
+                "${fmtSol(s.tradingLamports)} SOL to trade", style = MaterialTheme.typography.labelSmall.merge(NumberStyle), color = c.text,
+                modifier = Modifier.background(c.glass, CircleShape).border(1.dp, Color.White, CircleShape).padding(horizontal = 14.dp, vertical = 9.dp),
+            )
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(20.dp))
 
         if (app.kept.BuildConfig.CLUSTER != "mainnet-beta") {
-            Text("Trading opens on mainnet.", style = MaterialTheme.typography.displayMedium, color = c.bone)
+            Text("Trading opens on mainnet.", style = MaterialTheme.typography.displayMedium, color = c.text)
             Spacer(Modifier.height(12.dp))
             Text(
                 "This is a test build on Solana devnet, where there is no market to trade on. Trade from this wallet with any other app and Kept still banks every win.",
@@ -80,12 +93,11 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
             return@Column
         }
 
-        Row(verticalAlignment = Alignment.Bottom) {
-            ModeWord("Buy", buying) { if (!buying) { buying = true; token = null; amount = ""; vm.clearMessage() } }
-            Spacer(Modifier.width(28.dp))
-            ModeWord("Sell", !buying) { if (buying) { buying = false; token = null; amount = ""; vm.clearMessage(); vm.loadHoldings() } }
+        Row(Modifier.fillMaxWidth().background(c.raised, CircleShape).padding(5.dp)) {
+            ModeHalf("Buy", buying, Modifier.weight(1f)) { if (!buying) { buying = true; token = null; amount = ""; vm.clearMessage() } }
+            ModeHalf("Sell", !buying, Modifier.weight(1f)) { if (buying) { buying = false; token = null; amount = ""; vm.clearMessage(); vm.loadHoldings() } }
         }
-        Spacer(Modifier.height(26.dp))
+        Spacer(Modifier.height(24.dp))
 
         // The outgoing screen is still drawn while it fades, so each side works from the token it was shown with.
         AnimatedContent(buying to token, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "trade") { (isBuy, shown) ->
@@ -101,19 +113,19 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
 
         s.error?.let { Spacer(Modifier.height(16.dp)); Notice(it, isError = true) }
         s.message?.let { Spacer(Modifier.height(16.dp)); Notice(it, isError = false) }
-        Spacer(Modifier.height(40.dp))
     }
 }
 
-/** Buy and Sell as two words to choose between, in the display face. */
+/** One half of the Buy or Sell switch. The chosen half is a white pill that lifts off the track. */
 @Composable
-private fun ModeWord(text: String, on: Boolean, onClick: () -> Unit) {
+private fun ModeHalf(text: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val c = Kept.colors
-    Column(Modifier.width(IntrinsicSize.Max).clickable(onClick = onClick)) {
-        Text(text, style = MaterialTheme.typography.displayMedium, color = if (on) c.bone else c.line)
-        Spacer(Modifier.height(6.dp))
-        Box(Modifier.fillMaxWidth().height(2.dp).background(if (on) c.brass else c.ink))
-    }
+    val fill by animateColorAsState(if (on) Color.White else Color.Transparent, tween(200), label = "mode")
+    Box(
+        modifier.height(46.dp).shadow(if (on) 6.dp else 0.dp, CircleShape, ambientColor = c.accent.copy(alpha = 0.2f), spotColor = c.accent.copy(alpha = 0.2f))
+            .background(fill, CircleShape).clip(CircleShape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp), color = if (on) c.text else c.dim) }
 }
 
 @Composable
@@ -139,7 +151,7 @@ private fun TokenSearch(vm: AppViewModel, onPick: (Token) -> Unit) {
         searching = false
     }
 
-    Field(query, { query = it }, "Search a token, or paste its address", KeyboardType.Text)
+    KeptField(query, { query = it }, "Search a token, or paste its address")
     Spacer(Modifier.height(22.dp))
     val list = results
     when {
@@ -160,7 +172,7 @@ private fun HoldingList(holdings: List<AppViewModel.Held>?, onPick: (AppViewMode
     when {
         holdings == null -> Text("Reading your trading wallet…", style = MaterialTheme.typography.bodyMedium, color = c.dim)
         holdings.isEmpty() -> {
-            Text("Nothing to sell yet.", style = MaterialTheme.typography.headlineMedium, color = c.bone)
+            Text("Nothing to sell yet.", style = MaterialTheme.typography.headlineMedium, color = c.text)
             Spacer(Modifier.height(8.dp))
             Text("Buy a token and it shows up here, with what you paid for it.", style = MaterialTheme.typography.bodyLarge, color = c.dim)
         }
@@ -181,10 +193,12 @@ private fun HoldingList(holdings: List<AppViewModel.Held>?, onPick: (AppViewMode
 private fun TokenRow(t: Token, trailing: String?, sub: String? = null, onClick: () -> Unit) {
     val c = Kept.colors
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Monogram(t.symbol, t.mint)
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(t.symbol, style = MaterialTheme.typography.titleMedium, color = c.bone, maxLines = 1)
+                    Text(t.symbol, style = MaterialTheme.typography.titleMedium, color = c.text, maxLines = 1)
                     if (!t.verified) {
                         Spacer(Modifier.width(8.dp))
                         Text("unverified", style = MaterialTheme.typography.labelSmall, color = c.loss)
@@ -193,7 +207,7 @@ private fun TokenRow(t: Token, trailing: String?, sub: String? = null, onClick: 
                 val under = sub ?: t.name
                 if (under.isNotBlank()) Text(under, style = MaterialTheme.typography.bodyMedium, color = c.dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            trailing?.let { Text(it, style = MaterialTheme.typography.bodyLarge.merge(NumberStyle), color = c.bone, maxLines = 1) }
+            trailing?.let { Text(it, style = MaterialTheme.typography.bodyLarge.merge(NumberStyle), color = c.text, maxLines = 1) }
         }
         Hairline()
     }
@@ -202,12 +216,17 @@ private fun TokenRow(t: Token, trailing: String?, sub: String? = null, onClick: 
 @Composable
 private fun Chosen(t: Token, onChange: () -> Unit) {
     val c = Kept.colors
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Monogram(t.symbol, t.mint, size = 48.dp)
+        Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(t.symbol, style = MaterialTheme.typography.headlineMedium, color = c.bone, maxLines = 1)
+            Text(t.symbol, style = MaterialTheme.typography.headlineMedium, color = c.text, maxLines = 1)
             if (t.name.isNotBlank()) Text(t.name, style = MaterialTheme.typography.bodyMedium, color = c.dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text("Change", style = MaterialTheme.typography.labelLarge, color = c.brass, modifier = Modifier.clickable(onClick = onChange).padding(vertical = 6.dp))
+        Text(
+            "Change", style = MaterialTheme.typography.labelLarge, color = c.text,
+            modifier = Modifier.background(c.glass, CircleShape).border(1.dp, c.line, CircleShape).clip(CircleShape).clickable(onClick = onChange).padding(horizontal = 16.dp, vertical = 9.dp),
+        )
     }
     if (!t.verified) {
         Spacer(Modifier.height(10.dp))
@@ -300,10 +319,10 @@ private fun KeptPreview(s: AppState, costLamports: Long?, heldRaw: Long, sellRaw
             win = false
         }
     }
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        Box(Modifier.width(2.dp).fillMaxSize().background(if (win) c.brass else c.line))
-        Spacer(Modifier.width(14.dp))
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = if (win) c.bone else c.dim)
+    Row(Modifier.fillMaxWidth().background(if (win) c.accentSoft else c.raised, RoundedCornerShape(20.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {
+        Box(Modifier.padding(top = 6.dp).size(8.dp).background(if (win) c.accent else c.dim, CircleShape))
+        Spacer(Modifier.width(12.dp))
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = c.text)
     }
 }
 
@@ -328,46 +347,6 @@ private fun rememberQuote(vm: AppViewModel, inMint: String, outMint: String, raw
             .onFailure { error = "No one is offering a price for that right now. Try a different amount." }
     }
     return QuoteState(quote, error)
-}
-
-/** A single line to type into, with a hairline under it. */
-@Composable
-private fun Field(value: String, onChange: (String) -> Unit, hint: String, keyboard: KeyboardType) {
-    val c = Kept.colors
-    Column(Modifier.fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-            if (value.isEmpty()) Text(hint, style = MaterialTheme.typography.bodyLarge, color = c.dim)
-            BasicTextField(
-                value = value, onValueChange = { onChange(it.take(60)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.bone), cursorBrush = SolidColor(c.brass),
-                keyboardOptions = KeyboardOptions(keyboardType = keyboard),
-            )
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(if (value.isEmpty()) c.line else c.brass))
-    }
-}
-
-/** The amount, set large in the number face, with its unit beside it. */
-@Composable
-private fun BigAmount(value: String, onChange: (String) -> Unit, unit: String) {
-    val c = Kept.colors
-    val style = MaterialTheme.typography.displayMedium.merge(NumberStyle)
-    Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
-            Box(Modifier.weight(1f)) {
-                if (value.isEmpty()) Text("0.00", style = style, color = c.line)
-                BasicTextField(
-                    value = value,
-                    onValueChange = { v -> if (v.length <= 12 && v.all { it.isDigit() || it == '.' } && v.count { it == '.' } <= 1) onChange(v) },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    textStyle = style.copy(color = c.bone), cursorBrush = SolidColor(c.brass),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-            }
-            Text(unit, style = MaterialTheme.typography.titleMedium, color = c.dim, modifier = Modifier.padding(start = 12.dp, bottom = 8.dp))
-        }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(if (value.isEmpty()) c.line else c.brass))
-    }
 }
 
 private fun fmtUsd(v: Double): String = when {

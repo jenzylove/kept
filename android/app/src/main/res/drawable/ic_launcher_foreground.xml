@@ -6,6 +6,6 @@
     android:viewportHeight="108">
     <!-- A ratchet tooth: a slope up, then a hard stop that cannot slide back. -->
     <path
-        android:fillColor="#F2EDE4"
+        android:fillColor="#FFFFFF"
         android:pathData="M30,72 L30,60 L54,36 L54,56 L78,36 L78,72 Z" />
 </vector>

@@ -9,7 +9,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import app.kept.ui.HomeScreen
-import app.kept.ui.Hairline
 import app.kept.ui.Kept
 import app.kept.ui.KeptTheme
 import app.kept.ui.MirrorScreen
@@ -51,7 +57,12 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // A light page: the clock and battery icons must be dark.
+        val clear = android.graphics.Color.TRANSPARENT
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.light(clear, clear),
+            navigationBarStyle = androidx.activity.SystemBarStyle.light(clear, clear),
+        )
         val kept = application as KeptApp
 
         // The wallet adapter must be created before the activity starts.
@@ -69,7 +80,7 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             KeptTheme {
-                Box(Modifier.fillMaxSize().background(Kept.colors.ink)) { Root(vm, kept, ::exportKey) }
+                Box(Modifier.fillMaxSize().background(Kept.colors.page).background(Kept.sky)) { Root(vm, kept, ::exportKey) }
             }
         }
     }
@@ -114,35 +125,38 @@ private fun Root(vm: AppViewModel, kept: KeptApp, onExport: (onKey: (String) -> 
 
     when {
         !s.loaded -> Unit
-        s.vault != null -> Column(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(1f)) {
-                when (tab) {
-                    Tab.Vault -> HomeScreen(vm, s)
-                    Tab.Trade -> TradeScreen(vm, s)
-                    Tab.Mirror -> MirrorScreen(vm, onStart = null, connectedWallet = s.tradingWallet)
-                    Tab.Settings -> SettingsScreen(vm, s, onExport)
-                }
+        s.vault != null -> Box(Modifier.fillMaxSize()) {
+            when (tab) {
+                Tab.Vault -> HomeScreen(vm, s)
+                Tab.Trade -> TradeScreen(vm, s)
+                Tab.Mirror -> MirrorScreen(vm, onStart = null, connectedWallet = s.tradingWallet)
+                Tab.Settings -> SettingsScreen(vm, s, onExport)
             }
             // A message belongs to the screen it happened on; it should not follow the user around.
-            TabBar(tab) { if (it != tab) vm.clearMessage(); tab = it }
+            TabBar(tab, Modifier.align(Alignment.BottomCenter)) { if (it != tab) vm.clearMessage(); tab = it }
         }
         !started -> MirrorScreen(vm, onStart = { started = true; kept.prefs.onboarded = true }, connectedWallet = null)
         else -> SetupScreen(vm, s)
     }
 }
 
+/** The tab bar floats over the page as one frosted pill; the chosen tab is a solid pill inside it. */
 @Composable
-private fun TabBar(selected: Tab, onSelect: (Tab) -> Unit) {
+private fun TabBar(selected: Tab, modifier: Modifier = Modifier, onSelect: (Tab) -> Unit) {
     val c = Kept.colors
-    Column(Modifier.fillMaxWidth().background(c.ink).navigationBarsPadding()) {
-        Hairline()
-        Row(Modifier.fillMaxWidth()) {
-            Tab.entries.forEach { t ->
-                val on = t == selected
-                Column(Modifier.weight(1f).clickable { onSelect(t) }.padding(top = 12.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(t.label, style = MaterialTheme.typography.labelLarge, color = if (on) c.bone else c.dim)
-                    Box(Modifier.padding(top = 8.dp).height(2.dp).fillMaxWidth(0.3f).background(if (on) c.brass else c.ink))
-                }
+    Row(
+        modifier.navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 14.dp).fillMaxWidth()
+            .shadow(24.dp, CircleShape, ambientColor = c.accent.copy(alpha = 0.18f), spotColor = c.accent.copy(alpha = 0.28f))
+            .background(Color.White, CircleShape).border(1.dp, Color.White, CircleShape).padding(6.dp),
+    ) {
+        Tab.entries.forEach { t ->
+            val on = t == selected
+            val fill by animateColorAsState(if (on) c.text else Color.Transparent, tween(220), label = "tab")
+            Box(
+                Modifier.weight(1f).height(46.dp).background(fill, CircleShape).clip(CircleShape).clickable { onSelect(t) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(t.label, style = MaterialTheme.typography.labelLarge, color = if (on) Color.White else c.dim)
             }
         }
     }

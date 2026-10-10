@@ -21,19 +21,23 @@ object ShareCard {
     private const val W = 1080
     private const val H = 1350
 
-    private val INK = 0xFF0E0F0C.toInt()
-    private val BONE = 0xFFF2EDE4.toInt()
-    private val DIM = 0xFF9A978D.toInt()
-    private val BRASS = 0xFFD6A94A.toInt()
-    private val LOSS = 0xFFCB5B4A.toInt()
-    private val LINE = 0xFF2A2B24.toInt()
+    private val INK = 0xFFF7F6FB.toInt()
+    private val BONE = 0xFF15131F.toInt()
+    private val DIM = 0xFF716E82.toInt()
+    private val BRASS = 0xFF6A4BF4.toInt()
+    private val LOSS = 0xFFDB4B3A.toInt()
+    private val LINE = 0xFFE3E0EE.toInt()
 
     fun render(context: Context, wonLamports: Long, keptLamports: Long, wins: Int, wallet: List<Double>, kept: List<Double>): Bitmap {
-        val display = variable(context, R.font.fraunces, "'wght' 500, 'opsz' 144, 'SOFT' 0, 'WONK' 0") ?: Typeface.SERIF
-        val mono = variable(context, R.font.jetbrains_mono, "'wght' 400") ?: ResourcesCompat.getFont(context, R.font.jetbrains_mono) ?: Typeface.MONOSPACE
+        val display = variable(context, R.font.geist, "'wght' 600") ?: Typeface.SANS_SERIF
+        val mono = variable(context, R.font.geist, "'wght' 500") ?: ResourcesCompat.getFont(context, R.font.geist) ?: Typeface.SANS_SERIF
         val bmp = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.drawColor(INK)
+        // the same lilac sky as the app
+        c.drawRect(0f, 0f, W.toFloat(), H * 0.5f, Paint().apply {
+            shader = android.graphics.LinearGradient(0f, 0f, 0f, H * 0.5f, 0xFFE9E3FF.toInt(), INK, android.graphics.Shader.TileMode.CLAMP)
+        })
 
         fun paint(color: Int, size: Float, face: Typeface, spacing: Float = 0f) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color; textSize = size; typeface = face; letterSpacing = spacing
@@ -48,10 +52,10 @@ object ShareCard {
         c.drawText("Kept", 190f, 128f, paint(BONE, 52f, display))
 
         // headline numbers
-        c.drawText("WON", 80f, 330f, paint(DIM, 30f, mono, 0.14f))
-        c.drawText("${sol(wonLamports)} SOL", 80f, 440f, paint(BONE, 120f, display, -0.03f))
-        c.drawText("KEPT", 80f, 560f, paint(DIM, 30f, mono, 0.14f))
-        c.drawText("${sol(keptLamports)} SOL", 80f, 670f, paint(BRASS, 120f, display, -0.03f))
+        c.drawText("Won", 80f, 330f, paint(DIM, 34f, mono))
+        c.drawText("${sol(wonLamports)} SOL", 80f, 440f, paint(BONE, 124f, display, -0.04f))
+        c.drawText("Kept", 80f, 560f, paint(DIM, 34f, mono))
+        c.drawText("${sol(keptLamports)} SOL", 80f, 670f, paint(BRASS, 124f, display, -0.04f))
         c.drawText("across $wins ${if (wins == 1) "win" else "wins"}", 80f, 730f, paint(DIM, 36f, Typeface.SANS_SERIF))
 
         // the staircase
@@ -71,10 +75,10 @@ object ShareCard {
             kept.forEachIndexed { i, v ->
                 if (i == 0) stairs.moveTo(x(i), y(v)) else { stairs.lineTo(x(i), y(kept[i - 1])); stairs.lineTo(x(i), y(v)) }
             }
-            c.drawPath(stairs, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BRASS; style = Paint.Style.STROKE; strokeWidth = 8f; strokeJoin = Paint.Join.MITER })
+            c.drawPath(stairs, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BRASS; style = Paint.Style.STROKE; strokeWidth = 9f; strokeJoin = Paint.Join.ROUND; strokeCap = Paint.Cap.ROUND })
         }
 
-        c.drawText("A TRADING WALLET WITH A REFLEX", 80f, 1250f, paint(DIM, 28f, mono, 0.14f))
+        c.drawText("A trading wallet that keeps your wins", 80f, 1250f, paint(BONE, 32f, mono))
         c.drawText("kept-seeker.vercel.app", 80f, 1295f, paint(DIM, 30f, mono))
         return bmp
     }

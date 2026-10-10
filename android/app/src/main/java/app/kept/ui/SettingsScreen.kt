@@ -40,15 +40,13 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
     val testing = BuildConfig.CLUSTER != "mainnet-beta"
     val ignoring = (ctx.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 28.dp)) {
-        Label("Settings")
-        Spacer(Modifier.height(14.dp))
-        Text("Your rules.", style = MaterialTheme.typography.displayMedium, color = c.bone)
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
+        Text("Your rules", style = MaterialTheme.typography.headlineMedium, color = c.text)
         Spacer(Modifier.height(24.dp))
 
         if (v != null) {
-            Label("Share of each win to bank")
-            Spacer(Modifier.height(8.dp))
+            Text("Share of each win to keep", style = MaterialTheme.typography.titleMedium, color = c.text)
+            Spacer(Modifier.height(12.dp))
             Chips(listOf(2500 to "25%", 5000 to "50%", 7500 to "75%", 10000 to "100%"), bps, { it == 5000 || tier }) { bps = it }
             if (!tier) {
                 Spacer(Modifier.height(10.dp))
@@ -58,8 +56,8 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
                 )
             }
             Spacer(Modifier.height(24.dp))
-            Label("Bank wins as")
-            Spacer(Modifier.height(8.dp))
+            Text("Keep wins as", style = MaterialTheme.typography.titleMedium, color = c.text)
+            Spacer(Modifier.height(12.dp))
             if (!testing) {
                 Chips(listOf("sol" to "SOL", "skr" to "Staked SKR"), s.bankAsset, { it == "sol" || tier }) { vm.setBankAsset(it) }
                 if (tier) {
@@ -78,8 +76,8 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
                 )
             }
             Spacer(Modifier.height(24.dp))
-            Label("Wait before money leaves")
-            Spacer(Modifier.height(8.dp))
+            Text("Wait before money leaves", style = MaterialTheme.typography.titleMedium, color = c.text)
+            Spacer(Modifier.height(12.dp))
             Chips(
                 buildList {
                     if (testing) add(ONE_MINUTE to "1 min (test)")
@@ -100,10 +98,10 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
             }
             s.error?.let { Spacer(Modifier.height(14.dp)); Notice(it, isError = true) }
             s.message?.let { Spacer(Modifier.height(14.dp)); Notice(it, isError = false) }
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(34.dp))
         }
 
-        Label("Keep it running")
+        Text("Keep it running", style = MaterialTheme.typography.titleMedium, color = c.text)
         Spacer(Modifier.height(4.dp))
         Text(
             "Kept watches your trading wallet in the background. Phones stop apps to save battery, so let Kept run freely and no win is missed. If it ever stops, anything it missed is banked when it wakes and marked as found late.",
@@ -112,25 +110,25 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
         KeptGhostButton(if (ignoring) "Kept is allowed to keep running" else "Let Kept keep running", {
             ctx.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${ctx.packageName}")))
         }, enabled = !ignoring)
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(34.dp))
 
-        Label("Your trading wallet key")
+        Text("Your trading wallet key", style = MaterialTheme.typography.titleMedium, color = c.text)
         Text(
             "The key to your trading wallet was made on this phone and is locked inside it. Reveal it if you want to use the same wallet in another app. It asks for your fingerprint or PIN first. Anyone who has the key can move the money in the trading wallet, so keep it private.",
             style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
         )
         KeptGhostButton("Reveal key", { onExport { exported = it } })
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(34.dp))
 
-        Label("Check it yourself")
+        Text("Check it yourself", style = MaterialTheme.typography.titleMedium, color = c.text)
         Spacer(Modifier.height(4.dp))
         s.vaultAddress?.let { StatRow("Your vault", short(it, 5), onClick = { openExplorer(ctx, "account", it) }) }
         s.mainWallet?.let { StatRow("Your connected wallet", short(it, 5), onClick = { openExplorer(ctx, "account", it) }) }
         StatRow("Vault program", short(BuildConfig.VAULT_PROGRAM, 5), onClick = { openExplorer(ctx, "account", BuildConfig.VAULT_PROGRAM) })
         StatRow("Network", if (testing) "Solana devnet (test)" else "Solana mainnet")
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(34.dp))
 
-        Label("What Kept does not do")
+        Text("What Kept does not do", style = MaterialTheme.typography.titleMedium, color = c.text)
         Text(
             "It does not stop you moving money out of the trading wallet by hand. That wallet is yours, and the vault is the part that is protected. It does not pick trades or promise profit. A win is banked only when you sell for more than you paid. Tokens Kept never saw you buy are not counted.",
             style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
@@ -141,10 +139,10 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
     exported?.let { key ->
         AlertDialog(
             onDismissRequest = { exported = null },
-            containerColor = c.raised,
-            title = { Text("Trading wallet key", color = c.bone) },
-            text = { Text(key, style = MaterialTheme.typography.bodyMedium.merge(NumberStyle), color = c.bone) },
-            confirmButton = { TextButton(onClick = { copyToClipboard(ctx, "Trading wallet key", key); exported = null }) { Text("Copy and close", color = c.brass) } },
+            containerColor = androidx.compose.ui.graphics.Color.White,
+            title = { Text("Trading wallet key", color = c.text) },
+            text = { Text(key, style = MaterialTheme.typography.bodyMedium.merge(AddressStyle), color = c.text) },
+            confirmButton = { TextButton(onClick = { copyToClipboard(ctx, "Trading wallet key", key); exported = null }) { Text("Copy and close", color = c.accent) } },
             dismissButton = { TextButton(onClick = { exported = null }) { Text("Close", color = c.dim) } },
         )
     }

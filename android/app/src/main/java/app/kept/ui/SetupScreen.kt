@@ -18,11 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,31 +56,31 @@ fun SetupScreen(vm: AppViewModel, s: AppState) {
     val step = boundedSetupStep(requestedStep, s.mainWallet, s.tradingWallet)
     val goBack = { vm.clearMessage(); requestedStep = (step - 1).coerceAtLeast(1) }
     BackHandler(enabled = step > 1, onBack = goBack)
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding, vertical = 28.dp)) {
-        Label(if (BuildConfig.CLUSTER == "mainnet-beta") "Mainnet · real SOL" else "Devnet · test SOL only")
-        Spacer(Modifier.height(12.dp))
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = 40.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                for (i in 1..3) Box(Modifier.width(if (i == step) 28.dp else 14.dp).height(3.dp).background(if (i <= step) c.brass else c.line))
-                Spacer(Modifier.width(8.dp))
-                Label("Step $step of 3")
-            }
-            if (step > 1) Text("Back", style = MaterialTheme.typography.labelLarge, color = c.brass, modifier = Modifier.clickable(onClick = goBack).padding(8.dp))
+            Text("Kept", style = MaterialTheme.typography.headlineMedium, color = c.text)
+            if (step > 1) Text("Back", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable(onClick = goBack).padding(8.dp))
         }
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(22.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            for (i in 1..3) Box(Modifier.width(if (i == step) 34.dp else 16.dp).height(6.dp).background(if (i <= step) c.accent else c.line, androidx.compose.foundation.shape.CircleShape))
+            Spacer(Modifier.width(8.dp))
+            Label("Step $step of 3" + if (BuildConfig.CLUSTER == "mainnet-beta") "" else " · test network")
+        }
+        Spacer(Modifier.height(26.dp))
 
         if (step > 1 && s.mainWallet != null) {
             val ctx = LocalContext.current
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Label("Connected wallet")
-                Text("Change", style = MaterialTheme.typography.labelLarge, color = c.brass, modifier = Modifier.clickable {
+                Text("Change", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable {
                     vm.resetWalletConnection()
                     requestedStep = 1
                 }.padding(8.dp))
             }
             Spacer(Modifier.height(4.dp))
             Text(
-                s.mainWallet, style = MaterialTheme.typography.bodyMedium.merge(NumberStyle), color = c.dim,
+                s.mainWallet, style = MaterialTheme.typography.bodyMedium.merge(AddressStyle), color = c.dim,
                 modifier = Modifier.clickable { copyToClipboard(ctx, "Wallet", s.mainWallet) },
             )
             Spacer(Modifier.height(24.dp))
@@ -104,10 +101,10 @@ fun SetupScreen(vm: AppViewModel, s: AppState) {
 @Composable
 private fun ConnectStep(vm: AppViewModel, s: AppState, onContinue: () -> Unit) {
     val c = Kept.colors
-    Text("Connect the wallet that owns your vault.", style = MaterialTheme.typography.displayMedium, color = c.bone)
+    Text("Connect the wallet that owns your vault.", style = MaterialTheme.typography.displayMedium, color = c.text)
     Spacer(Modifier.height(14.dp))
     Text(
-        "On a Seeker this is your Seed Vault: you'll confirm with a double tap. On any other Android phone, use Phantom or Solflare. Kept never sees this wallet's key.",
+        "On a Seeker this is your Seed Vault, and you confirm with a double tap. On any other Android phone, use a wallet app like Phantom or Solflare. Kept never sees this wallet's key.",
         style = MaterialTheme.typography.bodyLarge, color = c.dim,
     )
     Spacer(Modifier.height(28.dp))
@@ -126,10 +123,10 @@ private fun TradingStep(vm: AppViewModel, s: AppState, onContinue: () -> Unit) {
     val c = Kept.colors
     val ctx = LocalContext.current
     var amount by rememberSaveable { mutableStateOf("0.1") }
-    Text("Make your trading wallet.", style = MaterialTheme.typography.displayMedium, color = c.bone)
+    Text("Make your trading wallet.", style = MaterialTheme.typography.displayMedium, color = c.text)
     Spacer(Modifier.height(14.dp))
     Text(
-        "A new wallet created on this phone. Its key is sealed by Android Keystore and never leaves unless you reveal it. Trade with it anywhere: in Kept, or import it into Phantom. Kept watches it and banks part of every win.",
+        "A new wallet made on this phone, for trading. Its key is locked inside the phone and never leaves unless you reveal it. Trade with it in Kept or in any other app. Kept watches it and keeps part of every win.",
         style = MaterialTheme.typography.bodyLarge, color = c.dim,
     )
     Spacer(Modifier.height(28.dp))
@@ -139,22 +136,18 @@ private fun TradingStep(vm: AppViewModel, s: AppState, onContinue: () -> Unit) {
     }
     Label("Trading wallet")
     Spacer(Modifier.height(6.dp))
-    Text(s.tradingWallet, style = MaterialTheme.typography.bodyMedium.merge(NumberStyle), color = c.bone, modifier = Modifier.clickable { copyToClipboard(ctx, "Trading wallet", s.tradingWallet) })
+    Text(s.tradingWallet, style = MaterialTheme.typography.bodyMedium.merge(AddressStyle), color = c.text, modifier = Modifier.clickable { copyToClipboard(ctx, "Trading wallet", s.tradingWallet) })
     Text("Tap the address to copy it", style = MaterialTheme.typography.labelSmall, color = c.dim, modifier = Modifier.padding(top = 4.dp))
     Spacer(Modifier.height(18.dp))
     StatRow("Balance (${if (BuildConfig.CLUSTER == "mainnet-beta") "mainnet" else "devnet"})", "${fmtSol(s.tradingLamports)} SOL")
     Spacer(Modifier.height(22.dp))
-    Label("Put some SOL in it (optional now)")
+    Text("Put some SOL in it. You can also do this later.", style = MaterialTheme.typography.titleMedium, color = c.text)
     Spacer(Modifier.height(8.dp))
-    OutlinedTextField(
-        value = amount, onValueChange = { amount = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), label = { Text("Amount in SOL") },
-        shape = RoundedCornerShape(4.dp),
-        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = c.brass, unfocusedBorderColor = c.line, focusedLabelColor = c.brass, cursorColor = c.brass),
-    )
+    KeptField(amount, { amount = it }, "Amount in SOL", keyboard = androidx.compose.ui.text.input.KeyboardType.Decimal)
     Spacer(Modifier.height(10.dp))
     val lamports = solInputToLamports(amount)
     if (amount.isNotBlank() && lamports == null) {
-        Text("Enter a positive SOL amount with no more than 9 decimal places.", style = MaterialTheme.typography.labelSmall, color = c.loss)
+        Text("Enter an amount of SOL, like 0.05.", style = MaterialTheme.typography.bodyMedium, color = c.loss)
         Spacer(Modifier.height(8.dp))
     }
     KeptGhostButton("Send from my wallet", { lamports?.let(vm::fundTrading) }, enabled = lamports != null && s.busy == null)
@@ -168,15 +161,15 @@ private fun VaultStep(vm: AppViewModel, s: AppState) {
     var bps by rememberSaveable { mutableStateOf(5000) }
     var cooldown by rememberSaveable { mutableStateOf(ONE_DAY) }
     val tier = s.skrRaw >= SKR_TIER_RAW
-    Text("Open your vault.", style = MaterialTheme.typography.displayMedium, color = c.bone)
+    Text("Open your vault.", style = MaterialTheme.typography.displayMedium, color = c.text)
     Spacer(Modifier.height(14.dp))
     Text(
-        "Every time the trading wallet sells for a profit, Kept moves part of the profit into your vault. Money goes in instantly. To take it out, you ask, then wait. You can cancel any time.",
+        "Every time you sell for more than you paid, Kept moves part of the profit into your vault. Money goes in at once. To take it out you ask, then wait. You can cancel any time.",
         style = MaterialTheme.typography.bodyLarge, color = c.dim,
     )
     Spacer(Modifier.height(26.dp))
 
-    Label("Share of each win to bank")
+    Text("Share of each win to keep", style = MaterialTheme.typography.titleMedium, color = c.text)
     Spacer(Modifier.height(8.dp))
     Chips(
         options = listOf(2500 to "25%", 5000 to "50%", 7500 to "75%", 10000 to "100%"),
@@ -186,11 +179,11 @@ private fun VaultStep(vm: AppViewModel, s: AppState) {
     )
     if (!tier) {
         Spacer(Modifier.height(6.dp))
-        Text("50% is the standard share. Hold ${SKR_TIER_RAW / 1_000_000} SKR in your wallet to choose another.", style = MaterialTheme.typography.labelSmall, color = c.dim)
+        Text("Everyone starts at 50%. Hold ${SKR_TIER_RAW / 1_000_000} SKR in your wallet to pick another share.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
     }
     Spacer(Modifier.height(22.dp))
 
-    Label("Wait before money leaves")
+    Text("Wait before money leaves", style = MaterialTheme.typography.titleMedium, color = c.text)
     Spacer(Modifier.height(8.dp))
     val testing = BuildConfig.CLUSTER != "mainnet-beta"
     Chips(
@@ -204,36 +197,15 @@ private fun VaultStep(vm: AppViewModel, s: AppState) {
     )
     Spacer(Modifier.height(8.dp))
     Text(
-        "Shortening this later only takes effect after the current wait, so a bad moment can't talk you out of it.",
-        style = MaterialTheme.typography.labelSmall, color = c.dim,
+        "You can make this longer at any time. Making it shorter only takes effect after the current wait, so a weak moment can't undo it.",
+        style = MaterialTheme.typography.bodyMedium, color = c.dim,
     )
     Spacer(Modifier.height(12.dp))
     Text(
-        "Kept simulates this transaction before opening your wallet. Cancel if your wallet still labels it malicious or says it may fail.",
-        style = MaterialTheme.typography.labelSmall, color = c.loss,
+        "Kept checks this step before it opens your wallet. If your wallet app still warns that it may fail or looks unsafe, cancel.",
+        style = MaterialTheme.typography.bodyMedium, color = c.dim,
     )
     Spacer(Modifier.height(28.dp))
     KeptButton("Open vault and turn Kept on", { vm.createVault(bps, cooldown) }, busy = s.busy != null)
     s.busy?.let { Spacer(Modifier.height(12.dp)); Text(it, style = MaterialTheme.typography.bodyMedium, color = c.dim) }
-}
-
-/** A single choice row of text chips. Selected is brass; others are hairline. */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@Composable
-fun <T> Chips(options: List<Pair<T, String>>, selected: T, enabled: (T) -> Boolean, onSelect: (T) -> Unit) {
-    val c = Kept.colors
-    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { (value, text) ->
-            val on = value == selected
-            val ok = enabled(value)
-            Box(
-                Modifier
-                    .background(if (on) c.brass else c.raised, RoundedCornerShape(3.dp))
-                    .clickable(enabled = ok) { onSelect(value) }
-                    .padding(horizontal = 16.dp, vertical = 11.dp),
-            ) {
-                Text(text, style = MaterialTheme.typography.labelLarge, color = if (on) c.ink else if (ok) c.bone else c.dim)
-            }
-        }
-    }
 }
