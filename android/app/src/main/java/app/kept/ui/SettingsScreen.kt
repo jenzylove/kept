@@ -50,26 +50,34 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
             Label("Share of each win to bank")
             Spacer(Modifier.height(8.dp))
             Chips(listOf(2500 to "25%", 5000 to "50%", 7500 to "75%", 10000 to "100%"), bps, { it == 5000 || tier }) { bps = it }
-            Spacer(Modifier.height(20.dp))
+            if (!tier) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Everyone starts at 50%. Hold ${SKR_TIER_RAW / 1_000_000} SKR in your connected wallet to pick your own share and to bank wins as staked SKR. You hold ${String.format(java.util.Locale.US, "%.0f", s.skrRaw / 1e6)}.",
+                    style = MaterialTheme.typography.bodyMedium, color = c.dim,
+                )
+            }
+            Spacer(Modifier.height(24.dp))
             Label("Bank wins as")
             Spacer(Modifier.height(8.dp))
             if (!testing) {
                 Chips(listOf("sol" to "SOL", "skr" to "Staked SKR"), s.bankAsset, { it == "sol" || tier }) { vm.setBankAsset(it) }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (tier) "Staked SKR swaps your share of each win into SKR and stakes it in your vault. It only ever stakes the SKR it just bought, never SKR you hold yourself. Small buys wait for the next win until they reach 1 SKR."
-                    else "Staked SKR needs ${SKR_TIER_RAW / 1_000_000} SKR in your wallet.",
-                    style = MaterialTheme.typography.labelSmall, color = c.dim,
-                )
+                if (tier) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Staked SKR turns your share of each win into SKR and stakes it in your vault, where it earns. It only stakes the SKR it just bought, never SKR you hold yourself. Small buys wait for the next win until they reach 1 SKR.",
+                        style = MaterialTheme.typography.bodyMedium, color = c.dim,
+                    )
+                }
             } else {
                 Chips(listOf("sol" to "SOL"), s.bankAsset, { true }) { vm.setBankAsset(it) }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(10.dp))
                 Text(
-                    "Staked SKR banking only works on mainnet builds. This build banks every win as SOL.",
-                    style = MaterialTheme.typography.labelSmall, color = c.dim,
+                    "This is a test build, so every win is banked as SOL. Staked SKR is available in the real app.",
+                    style = MaterialTheme.typography.bodyMedium, color = c.dim,
                 )
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
             Label("Wait before money leaves")
             Spacer(Modifier.height(8.dp))
             Chips(
@@ -79,53 +87,52 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
                 },
                 cooldown, { true },
             ) { cooldown = it }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
-                if (cooldown < v.cooldownSecs) "A shorter wait takes effect after your current wait (${fmtDuration(v.cooldownSecs)}), not now."
-                else "A longer wait takes effect immediately.",
-                style = MaterialTheme.typography.labelSmall, color = c.dim,
+                if (cooldown < v.cooldownSecs) "A shorter wait only starts after your current wait of ${fmtDuration(v.cooldownSecs)} has passed. That is what stops a weak moment from undoing it."
+                else "This is how long money you take out of the vault waits before it reaches you. You can make it longer at any time.",
+                style = MaterialTheme.typography.bodyMedium, color = c.dim,
             )
-            Spacer(Modifier.height(14.dp))
-            KeptButton("Save rules", { vm.setRules(cooldown, bps) }, enabled = (bps != v.bankBps || cooldown != v.cooldownSecs) && s.busy == null)
+            val changed = bps != v.bankBps || cooldown != v.cooldownSecs
+            if (changed) {
+                Spacer(Modifier.height(16.dp))
+                KeptButton("Save and approve in your wallet", { vm.setRules(cooldown, bps) }, enabled = s.busy == null)
+            }
+            s.error?.let { Spacer(Modifier.height(14.dp)); Notice(it, isError = true) }
+            s.message?.let { Spacer(Modifier.height(14.dp)); Notice(it, isError = false) }
             Spacer(Modifier.height(28.dp))
         }
-
-        Label("SKR")
-        StatRow("SKR in your wallet", String.format(java.util.Locale.US, "%.2f", s.skrRaw / 1e6))
-        StatRow("Needed to choose your own share", "${SKR_TIER_RAW / 1_000_000}")
-        StatRow("Status", if (tier) "Unlocked" else "Standard 50%", valueColor = if (tier) c.brass else c.dim)
-        Spacer(Modifier.height(28.dp))
 
         Label("Keep it running")
         Spacer(Modifier.height(4.dp))
         Text(
-            "Kept watches your trading wallet in the background. Android may stop apps to save battery; allow Kept to run freely so no win is missed. If it ever stops, anything it missed is banked when it wakes, marked as found late.",
+            "Kept watches your trading wallet in the background. Phones stop apps to save battery, so let Kept run freely and no win is missed. If it ever stops, anything it missed is banked when it wakes and marked as found late.",
             style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
         )
-        KeptGhostButton(if (ignoring) "Battery limits are off for Kept" else "Allow Kept to run in the background", {
+        KeptGhostButton(if (ignoring) "Kept is allowed to keep running" else "Let Kept keep running", {
             ctx.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${ctx.packageName}")))
         }, enabled = !ignoring)
         Spacer(Modifier.height(28.dp))
 
         Label("Your trading wallet key")
         Text(
-            "The key was made on this phone and sealed by Android Keystore. You can reveal it to import the wallet into another app. Anyone with it can move the money in the trading wallet, so keep it private.",
+            "The key to your trading wallet was made on this phone and is locked inside it. Reveal it if you want to use the same wallet in another app. It asks for your fingerprint or PIN first. Anyone who has the key can move the money in the trading wallet, so keep it private.",
             style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
         )
-        KeptGhostButton("Reveal key (needs your fingerprint or PIN)", { onExport { exported = it } })
+        KeptGhostButton("Reveal key", { onExport { exported = it } })
         Spacer(Modifier.height(28.dp))
 
-        Label("On chain")
+        Label("Check it yourself")
         Spacer(Modifier.height(4.dp))
         s.vaultAddress?.let { StatRow("Your vault", short(it, 5), onClick = { openExplorer(ctx, "account", it) }) }
-        s.mainWallet?.let { StatRow("Your wallet", short(it, 5), onClick = { openExplorer(ctx, "account", it) }) }
+        s.mainWallet?.let { StatRow("Your connected wallet", short(it, 5), onClick = { openExplorer(ctx, "account", it) }) }
         StatRow("Vault program", short(BuildConfig.VAULT_PROGRAM, 5), onClick = { openExplorer(ctx, "account", BuildConfig.VAULT_PROGRAM) })
-        StatRow("Network", BuildConfig.CLUSTER)
+        StatRow("Network", if (testing) "Solana devnet (test)" else "Solana mainnet")
         Spacer(Modifier.height(28.dp))
 
         Label("What Kept does not do")
         Text(
-            "It does not stop you moving money out of the trading wallet by hand: that wallet is yours. The vault is the part that's protected. It does not pick trades or guarantee profit. A win is banked only when the wallet sells above its cost; coins with no known cost are never banked.",
+            "It does not stop you moving money out of the trading wallet by hand. That wallet is yours, and the vault is the part that is protected. It does not pick trades or promise profit. A win is banked only when you sell for more than you paid. Tokens Kept never saw you buy are not counted.",
             style = MaterialTheme.typography.bodyMedium, color = c.dim, modifier = Modifier.padding(vertical = 10.dp),
         )
         Spacer(Modifier.height(40.dp))

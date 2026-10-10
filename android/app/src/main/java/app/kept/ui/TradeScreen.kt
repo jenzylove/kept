@@ -87,14 +87,14 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
         }
         Spacer(Modifier.height(26.dp))
 
-        val held = holdings?.firstOrNull { it.token.mint == token?.mint }
-        AnimatedContent(Triple(buying, token?.mint, Unit), transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "trade") { (isBuy, mint, _) ->
+        // The outgoing screen is still drawn while it fades, so each side works from the token it was shown with.
+        AnimatedContent(buying to token, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "trade") { (isBuy, shown) ->
             Column {
                 when {
-                    mint == null && isBuy -> TokenSearch(vm) { token = it; amount = "" }
-                    mint == null -> HoldingList(holdings) { token = it.token; amount = "" }
-                    isBuy -> BuyForm(vm, s, token!!, amount, { amount = it }) { token = null; amount = ""; vm.clearMessage() }
-                    else -> SellForm(vm, s, token!!, held, amount, { amount = it }) { token = null; amount = ""; vm.clearMessage() }
+                    shown == null && isBuy -> TokenSearch(vm) { token = it; amount = "" }
+                    shown == null -> HoldingList(holdings) { token = it.token; amount = "" }
+                    isBuy -> BuyForm(vm, s, shown, amount, { amount = it }) { token = null; amount = ""; vm.clearMessage() }
+                    else -> SellForm(vm, s, shown, holdings?.firstOrNull { it.token.mint == shown.mint }, amount, { amount = it }) { token = null; amount = ""; vm.clearMessage() }
                 }
             }
         }
