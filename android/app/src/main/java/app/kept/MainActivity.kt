@@ -132,6 +132,12 @@ private fun Root(vm: AppViewModel, kept: KeptApp, onExport: (onKey: (String) -> 
                 Tab.Mirror -> MirrorScreen(vm, onStart = null, connectedWallet = s.tradingWallet)
                 Tab.Settings -> SettingsScreen(vm, s, onExport)
             }
+            // The page fades out under the tab bar and the phone's own buttons, so nothing shows through them.
+            Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(170.dp).background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Transparent, 0.45f to Kept.colors.skyBottom, 1f to Kept.colors.skyBottom),
+                ),
+            )
             // A message belongs to the screen it happened on; it should not follow the user around.
             TabBar(tab, Modifier.align(Alignment.BottomCenter)) { if (it != tab) vm.clearMessage(); tab = it }
         }
