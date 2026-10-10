@@ -11,12 +11,15 @@ const assetLinks = [
   },
 ];
 
+// Built once and served from the edge: wallet apps give this file one second to answer.
+export const dynamic = "force-static";
+
 const body = new TextEncoder().encode(JSON.stringify(assetLinks));
 
 export function GET() {
   return new Response(body, {
     headers: {
-      "Cache-Control": "public, max-age=300",
+      "Cache-Control": "public, max-age=300, s-maxage=86400",
       "Content-Type": "application/json",
     },
   });
