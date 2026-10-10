@@ -2,7 +2,7 @@
   "address": "EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK",
   "metadata": {
     "name": "kept_vault",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "spec": "0.1.0"
   },
   "instructions": [
@@ -643,6 +643,16 @@
       "code": 6010,
       "name": "Overflow",
       "msg": "Overflow"
+    },
+    {
+      "code": 6011,
+      "name": "BadVault",
+      "msg": "The account passed as the vault is not this vault"
+    },
+    {
+      "code": 6012,
+      "name": "BadTokenAccount",
+      "msg": "A token account is not the SKR account it has to be"
     }
   ],
   "types": [
