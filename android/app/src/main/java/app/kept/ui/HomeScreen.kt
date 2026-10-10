@@ -74,10 +74,12 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         // Count up to the new total, and flash brass for a moment when money has just arrived.
         val shown by animateFloatAsState(s.vaultLamports.toFloat(), tween(900), label = "vault")
         var flash by remember { mutableStateOf(false) }
-        var last by remember { mutableStateOf(s.vaultLamports) }
-        LaunchedEffect(s.vaultLamports) {
-            if (s.vaultLamports > last && last > 0) { flash = true; delay(1600); flash = false }
+        var last by remember { mutableStateOf(-1L) }
+        LaunchedEffect(s.vaultLamports, s.loaded) {
+            if (!s.loaded) return@LaunchedEffect
+            val rose = last >= 0 && s.vaultLamports > last
             last = s.vaultLamports
+            if (rose) { flash = true; delay(1600); flash = false }
         }
         val numberColor by animateColorAsState(if (flash) c.brass else c.bone, tween(700), label = "flash")
         Text(fmtSol(shown.toLong()), style = MaterialTheme.typography.displayLarge.merge(NumberStyle), color = numberColor)
@@ -106,8 +108,29 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         }
 
         Spacer(Modifier.height(26.dp))
-        if (v != null && v.hasPendingWithdraw) PendingWithdraw(vm, s, v) else {
-            KeptGhostButton("Take money out", { withdrawOpen = true }, enabled = s.vaultLamports > 0 && s.busy == null)
+        // One clear next step until the first win is banked, then the way out.
+        val needsSol = s.loaded && s.tradingLamports < MIN_TRADING_LAMPORTS
+        when {
+            v != null && v.hasPendingWithdraw -> PendingWithdraw(vm, s, v)
+            s.vaultLamports > 0 -> KeptGhostButton("Take money out", { withdrawOpen = true }, enabled = s.busy == null)
+            needsSol -> {
+                Label("Next step")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Your vault is open. Now put some SOL in your trading wallet. That is the wallet you trade from, and it lives on this phone.",
+                    style = MaterialTheme.typography.bodyLarge, color = c.bone,
+                )
+                Spacer(Modifier.height(14.dp))
+                KeptButton("Add SOL to trade with", { fundOpen = true }, enabled = s.busy == null)
+            }
+            v != null -> {
+                Label("You are set")
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Trade from the Trade tab. Each time you sell for more than you paid, ${v.bankBps / 100}% of the profit moves here by itself. Nothing moves on a loss.",
+                    style = MaterialTheme.typography.bodyLarge, color = c.bone,
+                )
+            }
         }
 
         s.error?.let { Spacer(Modifier.height(16.dp)); Notice(it, isError = true) }
@@ -126,7 +149,7 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         StatRow("Balance", "${fmtSol(s.tradingLamports)} SOL")
         s.tradingWallet?.let { StatRow("Address (tap to copy)", short(it, 5), onClick = { copyToClipboard(ctx, "Trading wallet", it) }) }
         Spacer(Modifier.height(10.dp))
-        TextButton(onClick = { fundOpen = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+        if (!(needsSol && s.vaultLamports == 0L && v?.hasPendingWithdraw != true)) TextButton(onClick = { fundOpen = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
             Text("Add SOL from my wallet", color = c.brass, style = MaterialTheme.typography.labelLarge)
         }
         if (v != null) {
@@ -214,7 +237,7 @@ private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long,
     var amount by remember { mutableStateOf("") }
     var toTrading by remember { mutableStateOf(false) }
     val lamports = solInputToLamports(amount)
-    val spendable = (s.vaultLamports - RENT_RESERVE).coerceAtLeast(0)
+    val spendable = s.vaultLamports
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = c.raised,
@@ -239,8 +262,8 @@ private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long,
     )
 }
 
-/** Roughly the rent the vault account must keep; the program refuses to dip into it. */
-private const val RENT_RESERVE = 2_100_000L
+/** Under this the trading wallet cannot pay for a trade and its fees. */
+private const val MIN_TRADING_LAMPORTS = 2_000_000L
 
 @Composable
 private fun SkrSection(vm: AppViewModel, s: AppState, v: VaultProgram.VaultState, skr: app.kept.SkrPosition) {

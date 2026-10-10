@@ -174,7 +174,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         require(trading != null && decoded.banker == trading) { "Vault banker does not match this device's trading wallet" }
                         vault = decoded
                     }
-                    vaultLamports = if (vault != null) rpc.balance(vaultAddr) else 0
+                    // What the screen calls the vault's money leaves out the deposit that keeps the account open.
+                    vaultLamports = if (vault != null) (rpc.balance(vaultAddr) - vaultRent()).coerceAtLeast(0) else 0
                     skr = runCatching { rpc.tokenBalance(main, SKR_MINT) }.getOrDefault(0)
                 }
                 var skrPos: SkrPosition? = null
@@ -330,6 +331,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         signAndConfirm(w, tx)
         _state.update { it.copy(message = "Done. The money is on its way to ${short(v.withdrawTo.toBase58())}.") }
         refresh()
+    }
+
+    private var cachedVaultRent = 0L
+    private suspend fun vaultRent(): Long {
+        if (cachedVaultRent == 0L) cachedVaultRent = rpc.minimumBalanceForRentExemption(VaultProgram.VAULT_ACCOUNT_SIZE)
+        return cachedVaultRent
     }
 
     fun setBankAsset(asset: String) {
