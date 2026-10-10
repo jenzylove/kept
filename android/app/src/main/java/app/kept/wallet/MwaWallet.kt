@@ -74,11 +74,15 @@ class MwaWallet(
             // A wallet app that has just started gives our site one second to prove this app is ours,
             // and on a phone network that often runs out. It refuses before showing anything, so
             // nothing was signed and asking once more is safe; by then the wallet is awake.
-            if (result is TransactionResult.Failure && isIdentityRefusal(result.e)) {
-                android.util.Log.w("KeptMwa", "wallet could not verify the app in time, asking once more")
+            var asks = 1
+            while (result is TransactionResult.Failure && isIdentityRefusal(result.e) && asks < 3) {
+                android.util.Log.w("KeptMwa", "wallet could not verify the app in time, asking again ($asks)")
+                // Give a wallet that has just started a moment to finish its own loading.
+                kotlinx.coroutines.delay(1_500)
                 warmIdentity()
                 adapter = newAdapter()
                 result = operation(adapter)
+                asks++
             }
             when (result) {
                 is TransactionResult.Success -> {
@@ -91,7 +95,9 @@ class MwaWallet(
                     if (result.message.contains("Auth token invalid", ignoreCase = true)) {
                         prefs.walletAuthToken = null
                     }
-                    val message = if (result.message.contains("local association", ignoreCase = true)) {
+                    val message = if (isIdentityRefusal(result.e)) {
+                        "Your wallet app could not confirm Kept in time, which happens on a slow connection. Nothing was sent. Try again in a moment."
+                    } else if (result.message.contains("local association", ignoreCase = true)) {
                         "Couldn't reconnect to the wallet app. Close the wallet approval, return to Kept, and retry. Use Change wallet if it repeats."
                     } else {
                         result.message
