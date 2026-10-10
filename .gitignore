@@ -27,3 +27,6 @@ dist/
 .idea/
 *.iml
 target-deploy/
+
+# local agent workspaces
+.claude/
