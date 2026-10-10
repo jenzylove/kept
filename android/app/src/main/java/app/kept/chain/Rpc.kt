@@ -183,6 +183,28 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         }
     }
 
+    data class Holding(val mint: String, val raw: Long, val decimals: Int)
+
+    /** Every token the owner holds a balance of, under both token programs. */
+    suspend fun tokenHoldings(owner: String): List<Holding> {
+        val cfg = buildJsonObject { put("encoding", "jsonParsed"); put("commitment", "confirmed") }
+        val totals = LinkedHashMap<String, Holding>()
+        for (program in listOf("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")) {
+            val filter = buildJsonObject { put("programId", program) }
+            val r = call("getTokenAccountsByOwner", buildJsonArray { add(JsonPrimitive(owner)); add(filter); add(cfg) }).jsonObject
+            for (a in r["value"]!!.jsonArray) {
+                val info = a.jsonObject["account"]!!.jsonObject["data"]!!.jsonObject["parsed"]!!.jsonObject["info"]!!.jsonObject
+                val amount = info["tokenAmount"]!!.jsonObject
+                val raw = amount["amount"]!!.jsonPrimitive.content.toLongOrNull() ?: continue
+                if (raw <= 0) continue
+                val mint = info["mint"]!!.jsonPrimitive.content
+                val decimals = amount["decimals"]!!.jsonPrimitive.content.toInt()
+                totals[mint] = Holding(mint, (totals[mint]?.raw ?: 0L) + raw, decimals)
+            }
+        }
+        return totals.values.toList()
+    }
+
     suspend fun send(base64Tx: String): String {
         val cfg = buildJsonObject {
             put("encoding", "base64")

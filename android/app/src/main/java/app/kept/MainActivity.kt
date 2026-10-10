@@ -123,7 +123,8 @@ private fun Root(vm: AppViewModel, kept: KeptApp, onExport: (onKey: (String) -> 
                     Tab.Settings -> SettingsScreen(vm, s, onExport)
                 }
             }
-            TabBar(tab) { tab = it }
+            // A message belongs to the screen it happened on; it should not follow the user around.
+            TabBar(tab) { if (it != tab) vm.clearMessage(); tab = it }
         }
         !started -> MirrorScreen(vm, onStart = { started = true; kept.prefs.onboarded = true }, connectedWallet = null)
         else -> SetupScreen(vm, s)

@@ -9,6 +9,8 @@ import app.kept.mirror.MirrorLoader
 import app.kept.reflex.BankEntry
 import app.kept.reflex.WatcherService
 import app.kept.trade.Jupiter
+import app.kept.trade.Token
+import app.kept.trade.Tokens
 import app.kept.wallet.MainWallet
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
@@ -126,6 +128,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 _state.update {
                     it.copy(
                         error = if (slow) "The network rejected that, most likely because approving took too long. Try again and approve within a minute."
+                        else if (m.startsWith("Your wallet app")) m
                         else "The wallet did not complete that: ${m.take(160).ifBlank { "cancelled" }}",
                     )
                 }
@@ -412,7 +415,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun quote(inMint: String, outMint: String, amount: Long) = jupiter.quote(inMint, outMint, amount)
 
-    fun swap(quote: Jupiter.Quote, label: String) = work(label) {
+    fun swap(quote: Jupiter.Quote, label: String, done: String) = work(label) {
         if (!MAINNET) error("In app trading only works on mainnet")
         val key = kept.tradingKey.load() ?: error("No trading wallet")
         val tx = jupiter.signedSwap(quote, key)
@@ -421,8 +424,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (!rpc.confirm(sig)) {
             error("Swap was submitted as $sig but confirmation is still pending. Do not retry yet; check this signature in an explorer.")
         }
-        _state.update { it.copy(message = "Done. If it's a sell above your cost, the reflex banks your share in a few seconds.") }
+        _state.update { it.copy(message = done) }
         refresh()
+        loadHoldings()
+    }
+
+    private val tokens = Tokens()
+
+    suspend fun searchTokens(query: String) = tokens.search(query)
+
+    /** What the trading wallet holds, with a name for each token and what Kept saw it cost. */
+    data class Held(val token: Token, val raw: Long, val costLamports: Long?)
+
+    private val _holdings = MutableStateFlow<List<Held>?>(null)
+    val holdings: StateFlow<List<Held>?> = _holdings.asStateFlow()
+
+    fun loadHoldings() {
+        viewModelScope.launch {
+            val owner = kept.tradingKey.load()?.publicKey?.toBase58() ?: return@launch
+            runCatching {
+                val held = rpc.tokenHoldings(owner)
+                val names = tokens.byMint(held.map { it.mint })
+                val positions = runCatching { kept.reflexStore.load().enginePositions() }.getOrDefault(emptyMap())
+                held.map { h ->
+                    val token = names[h.mint] ?: Token(h.mint, short(h.mint), "", h.decimals, null, false)
+                    // Cost for what is held now. Unknown when the token arrived some other way than a buy Kept saw.
+                    val cost = positions[h.mint]?.takeIf { it.raw.signum() > 0 }?.let { p ->
+                        p.cost.multiply(java.math.BigInteger.valueOf(h.raw).min(p.raw)).divide(p.raw).toLong()
+                    }
+                    Held(token.copy(decimals = h.decimals), h.raw, cost)
+                }.sortedByDescending { it.costLamports ?: -1 }
+            }.onSuccess { _holdings.value = it }
+        }
     }
 
     fun tradingTokenBalance(mint: String, onResult: (Long) -> Unit) {
