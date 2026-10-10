@@ -86,6 +86,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (!MAINNET && kept.prefs.bankAsset != "sol") kept.prefs.bankAsset = "sol"
         _state.update { it.copy(mainWallet = kept.prefs.mainWallet, tradingWallet = kept.tradingKey.load()?.publicKey?.toBase58()) }
         refresh()
+        // The watcher dies with the process when the app is updated or the phone kills it, so every
+        // launch makes sure it is running if the user left Kept on.
+        if (kept.prefs.vaultReady && kept.prefs.reflexEnabled && kept.tradingKey.exists()) {
+            runCatching { WatcherService.start(getApplication()) }
+        }
         viewModelScope.launch { while (true) { delay(4_000); tick() } }
     }
 
@@ -420,9 +425,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val key = kept.tradingKey.load() ?: error("No trading wallet")
         val tx = jupiter.signedSwap(quote, key)
         rpc.simulateSigned(tx)
-        val sig = rpc.send(tx)
-        if (!rpc.confirm(sig)) {
-            error("Swap was submitted as $sig but confirmation is still pending. Do not retry yet; check this signature in an explorer.")
+        val (sig, landing) = try {
+            rpc.sendUntilLanded(tx)
+        } catch (e: app.kept.chain.RpcException) {
+            if (e.code == -2) error("The trade ran and was turned down, usually because the price moved too far. Nothing was traded. Try again.")
+            throw e
+        }
+        when (landing) {
+            app.kept.chain.Rpc.Landing.Confirmed -> Unit
+            app.kept.chain.Rpc.Landing.Expired -> error("The network did not pick that up. Nothing was traded, and it is safe to try again.")
+            app.kept.chain.Rpc.Landing.Unknown -> {
+                loadHoldings()
+                error("Still waiting on the network. Check your balance in a minute before trying again. Reference: ${short(sig)}")
+            }
         }
         _state.update { it.copy(message = done) }
         refresh()

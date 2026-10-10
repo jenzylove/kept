@@ -215,6 +215,48 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
         return call("sendTransaction", buildJsonArray { add(JsonPrimitive(base64Tx)); add(cfg) }).jsonPrimitive.content
     }
 
+    /** Send the same signed transaction again. Safe to repeat: a signature can only land once. */
+    suspend fun resend(base64Tx: String) {
+        val cfg = buildJsonObject { put("encoding", "base64"); put("skipPreflight", true); put("maxRetries", 0) }
+        call("sendTransaction", buildJsonArray { add(JsonPrimitive(base64Tx)); add(cfg) })
+    }
+
+    enum class Landing { Confirmed, Expired, Unknown }
+
+    /**
+     * Send a signed transaction and keep offering it to the network until it lands. A busy network
+     * drops transactions without telling anyone, so one send is not enough. Returns [Landing.Expired]
+     * only when the transaction can no longer land (its blockhash is too old), which makes a retry safe.
+     * Throws if the transaction ran and failed.
+     */
+    suspend fun sendUntilLanded(base64Tx: String, timeoutMs: Long = 90_000): Pair<String, Landing> {
+        val startHeight = runCatching { blockHeight() }.getOrNull()
+        val signature = send(base64Tx)
+        val started = System.currentTimeMillis()
+        var lastSend = started
+        var lastHeightCheck = started
+        while (System.currentTimeMillis() - started < timeoutMs) {
+            delay(1_000)
+            when (runCatching { signatureStatus(signature) }.getOrDefault(SignatureStatus.Missing)) {
+                SignatureStatus.Confirmed -> return signature to Landing.Confirmed
+                SignatureStatus.Failed -> throw RpcException(-2, "The transaction ran and failed")
+                else -> Unit
+            }
+            val now = System.currentTimeMillis()
+            if (now - lastSend >= 2_000) { runCatching { resend(base64Tx) }; lastSend = now }
+            // A blockhash lives 150 blocks, and this one was made before we started counting.
+            if (startHeight != null && now - lastHeightCheck >= 6_000) {
+                lastHeightCheck = now
+                val height = runCatching { blockHeight() }.getOrNull()
+                if (height != null && height > startHeight + 155) {
+                    val final = runCatching { signatureStatus(signature) }.getOrDefault(SignatureStatus.Missing)
+                    return signature to if (final == SignatureStatus.Confirmed) Landing.Confirmed else if (final == SignatureStatus.Missing) Landing.Expired else Landing.Unknown
+                }
+            }
+        }
+        return signature to Landing.Unknown
+    }
+
     /** Fail closed before opening a wallet approval for a transaction the current cluster rejects. */
     suspend fun simulateUnsigned(transaction: ByteArray) =
         simulate(java.util.Base64.getEncoder().encodeToString(transaction), verifySignatures = false)
