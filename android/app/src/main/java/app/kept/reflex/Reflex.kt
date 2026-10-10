@@ -151,7 +151,13 @@ class Reflex(
         if (amount < minBank) return record(BankEntry.Status.TooSmall, reason = "Share is under $minBank lamports, not worth the fee")
         if (r.asset == BankAsset.StakedSkr && skrBank != null && runCatching { skrTier() }.getOrDefault(false)) {
             return try {
-                val out = skrBank.bank(amount, r.vaultOwner)
+                val out = skrBank.bank(amount, r.vaultOwner, state.waitingSkrRaw) { waiting ->
+                    // Saved the moment it changes, before any later step can fail or the process can die.
+                    state = state.copy(waitingSkrRaw = waiting)
+                    store.save(state)
+                }
+                state = state.copy(waitingSkrRaw = out.waitingRaw)
+                store.save(state)
                 record(BankEntry.Status.Confirmed, out.swapSignature) {
                     it.copy(asset = "SKR", stakeSignature = out.stakeSignature, stakedSkrRaw = out.stakedRaw, waitingSkrRaw = out.waitingRaw)
                 }

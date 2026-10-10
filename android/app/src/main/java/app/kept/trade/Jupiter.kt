@@ -16,29 +16,43 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.sol4k.Keypair
 
+/** What the app needs from a swap provider. [Jupiter] implements it; tests use a fake. */
+interface SwapSource {
+    suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int = 300): Jupiter.Quote
+    suspend fun signedSwap(quote: Jupiter.Quote, trader: Keypair): String
+}
+
 /** Swaps for the trading wallet through Jupiter, signed on this phone. */
-class Jupiter(private val client: OkHttpClient = OkHttpClient()) {
+class Jupiter(private val client: OkHttpClient = OkHttpClient()) : SwapSource {
     private val json = Json { ignoreUnknownKeys = true }
 
     data class Quote(val raw: JsonObject, val inMint: String, val outMint: String, val inAmount: Long, val outAmount: Long, val priceImpactPct: String?)
 
-    suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int = 300): Quote = withContext(Dispatchers.IO) {
+    override suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int): Quote = withContext(Dispatchers.IO) {
         val url = "$BASE/quote?inputMint=$inMint&outputMint=$outMint&amount=$amount&slippageBps=$slippageBps"
         val body = get(url)
         val o = json.parseToJsonElement(body).jsonObject
         if (o["error"] != null) error(o["error"]!!.jsonPrimitive.content)
+        // The quote must describe the trade that was asked for; the amount is what the swap is checked against.
+        val inAmount = o["inAmount"]!!.jsonPrimitive.content.toLong()
+        check(inAmount == amount) { "Jupiter quoted a different amount than requested" }
+        check(o["inputMint"]?.jsonPrimitive?.contentOrNull == inMint) { "Jupiter quoted a different input token than requested" }
+        check(o["outputMint"]?.jsonPrimitive?.contentOrNull == outMint) { "Jupiter quoted a different output token than requested" }
         Quote(
             raw = o,
             inMint = inMint,
             outMint = outMint,
-            inAmount = o["inAmount"]!!.jsonPrimitive.content.toLong(),
+            inAmount = inAmount,
             outAmount = o["outAmount"]!!.jsonPrimitive.content.toLong(),
             priceImpactPct = o["priceImpactPct"]?.jsonPrimitive?.contentOrNull,
         )
     }
 
-    /** A signed swap transaction, base64, ready to send. */
-    suspend fun signedSwap(quote: Quote, trader: Keypair): String = withContext(Dispatchers.IO) {
+    /**
+     * A signed swap transaction, base64, ready to send. Jupiter's answer is checked by [SwapValidator]
+     * and refused (by throwing [SwapRejected]) before the trading key signs anything.
+     */
+    override suspend fun signedSwap(quote: Quote, trader: Keypair): String = withContext(Dispatchers.IO) {
         val req = buildJsonObject {
             put("quoteResponse", quote.raw)
             put("userPublicKey", trader.publicKey.toBase58())
@@ -49,7 +63,7 @@ class Jupiter(private val client: OkHttpClient = OkHttpClient()) {
         val text = client.newCall(r).execute().use { it.body?.string().orEmpty() }
         val o = json.parseToJsonElement(text).jsonObject
         val tx = o["swapTransaction"]?.jsonPrimitive?.contentOrNull ?: error(o["error"]?.jsonPrimitive?.contentOrNull ?: "Jupiter returned no transaction")
-        signVersioned(tx, trader)
+        signValidated(tx, trader, quote.inMint, quote.inAmount)
     }
 
     private fun get(url: String): String =
@@ -58,6 +72,17 @@ class Jupiter(private val client: OkHttpClient = OkHttpClient()) {
     companion object {
         const val BASE = "https://lite-api.jup.ag/swap/v1"
         const val SOL = "So11111111111111111111111111111111111111112"
+
+        /** Validate Jupiter's transaction for [trader], then sign it. Throws [SwapRejected] without signing if it is not a plain swap. */
+        fun signValidated(base64: String, trader: Keypair, inMint: String, inAmount: Long): String {
+            val bytes = try {
+                Base64.getDecoder().decode(base64)
+            } catch (_: IllegalArgumentException) {
+                throw SwapRejected("Swap refused: the transaction from Jupiter is not valid base64")
+            }
+            SwapValidator.validate(bytes, trader.publicKey, inMint, inAmount)
+            return signVersioned(base64, trader)
+        }
 
         /**
          * Sign a serialized (legacy or versioned) transaction as its first signer. The wire form is

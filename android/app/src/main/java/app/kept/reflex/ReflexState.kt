@@ -53,6 +53,12 @@ data class ReflexState(
     val activatedAt: Long = 0,
     val positions: Map<String, PositionDto> = emptyMap(),
     val log: List<BankEntry> = emptyList(),
+    /**
+     * SKR (base units) that earlier banks bought and that sits in the trading wallet under the 1 SKR
+     * minimum stake. It is the only SKR balance Kept will ever stake besides what a bank just bought:
+     * SKR the user put in the wallet themselves is never counted.
+     */
+    val waitingSkrRaw: Long = 0,
 ) {
     fun enginePositions(): Map<String, Engine.Position> =
         positions.mapValues { Engine.Position(BigInteger(it.value.raw), BigInteger(it.value.cost)) }

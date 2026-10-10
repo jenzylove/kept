@@ -372,11 +372,13 @@ class ReflexTest {
         assertEquals(java.math.BigInteger("100"), state.enginePositions()["M"]!!.raw)
     }
 
-    private class FakeSkrBank(private val result: SkrBanked? = null, private val boom: Exception? = null) : SkrBank {
+    private class FakeSkrBank(private val result: SkrBanked? = null, private val boom: Exception? = null, private val saves: Long? = null) : SkrBank {
         var calls = 0
         var lastLamports = 0L
-        override suspend fun bank(lamports: Long, vaultOwner: org.sol4k.PublicKey): SkrBanked {
-            calls++; lastLamports = lamports
+        var lastWaiting = -1L
+        override suspend fun bank(lamports: Long, vaultOwner: org.sol4k.PublicKey, waitingRaw: Long, saveWaiting: suspend (Long) -> Unit): SkrBanked {
+            calls++; lastLamports = lamports; lastWaiting = waitingRaw
+            saves?.let { saveWaiting(it) }
             boom?.let { throw it }
             return result!!
         }
@@ -433,5 +435,57 @@ class ReflexTest {
         assertTrue("the win is not silently banked as SOL", chain.sent.isEmpty())
         assertTrue("multi-step SKR failures are never automatically retried", reflex.drain().isEmpty())
         assertEquals(1, bank.calls)
+    }
+
+    @Test
+    fun theWaitingSkrAmountIsSavedWithTheStateAndHandedToTheNextBank() = runBlocking {
+        val f = File.createTempFile("reflex-waiting", ".json").also { it.delete() }
+        val first = FakeSkrBank(SkrBanked("swapSig", null, stakedRaw = 0, waitingRaw = 400_000))
+        skrReflex(FakeChain(vectors(trader)), first, store = JsonFileStore(f)).drain().single()
+        assertEquals(0L, first.lastWaiting)
+
+        // A restart: a new Reflex over the same file still knows the 0.4 SKR Kept bought earlier.
+        val reloaded = JsonFileStore(f).load()
+        assertEquals(400_000L, reloaded.waitingSkrRaw)
+        val next = FakeSkrBank(SkrBanked("swap2", "stake2", stakedRaw = 1_400_000, waitingRaw = 0))
+        // Forget the cursor so the same win is handled again by the second instance.
+        val again = JsonFileStore(f).also { it.save(reloaded.copy(lastSignature = null, log = emptyList(), positions = emptyMap())) }
+        skrReflex(FakeChain(vectors(trader)), next, store = again).drain().single()
+        assertEquals("the saved amount is passed to the bank", 400_000L, next.lastWaiting)
+        assertEquals("staking clears the waiting amount", 0L, JsonFileStore(f).load().waitingSkrRaw)
+    }
+
+    @Test
+    fun theWaitingAmountIsOnDiskEvenWhenALaterStepOfTheBankFails() = runBlocking {
+        val store = MemoryStore()
+        val bank = FakeSkrBank(boom = IllegalStateException("stake rejected"), saves = 900_000)
+        val e = skrReflex(FakeChain(vectors(trader)), bank, store = store).drain().single()
+        assertEquals(BankEntry.Status.Failed, e.status)
+        assertEquals(900_000L, store.state.waitingSkrRaw)
+    }
+
+    @Test
+    fun aRestartedReflexHandsTheSavedWaitingAmountToTheRealBank() = runBlocking {
+        // First win buys 0.4 SKR, the process restarts, the second win buys 0.7 and stakes 1.1,
+        // leaving the 9 SKR the user holds themselves alone.
+        val f = File.createTempFile("skr-restart", ".json").also { it.delete() }
+        val skrChain = FakeSkrChain(balance = 9_000_000, swapYields = 400_000)
+        val signer = Keypair.generate()
+        fun reflex(yield: Long) = Reflex(
+            FakeChain(vectors(trader)), signer, program, JsonFileStore(f), { Rules(vaultOwner, 5000, BankAsset.StakedSkr) },
+            watched = trader, clock = { 1_900_000_000L },
+            skrBank = JupiterSkrBank(FakeSwap(yield), skrChain, signer, program), skrTier = { true },
+        )
+        reflex(400_000).drain().single()
+        assertEquals(400_000L, JsonFileStore(f).load().waitingSkrRaw)
+
+        // New process, same file; the same history is replayed as if a new winning sell arrived.
+        JsonFileStore(f).let { it.save(it.load().copy(lastSignature = null, log = emptyList(), positions = emptyMap())) }
+        skrChain.swapYields = 700_000
+        val e = reflex(700_000).drain().single()
+        assertEquals(listOf(1_100_000L), skrChain.stakes)
+        assertEquals(1_100_000L, e.stakedSkrRaw)
+        assertEquals(0L, JsonFileStore(f).load().waitingSkrRaw)
+        assertEquals(9_000_000L, skrChain.balance)
     }
 }

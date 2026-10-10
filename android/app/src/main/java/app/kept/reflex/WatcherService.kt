@@ -9,6 +9,7 @@ import android.content.pm.ServiceInfo
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import app.kept.BuildConfig
 import app.kept.KeptApp
 import app.kept.MainActivity
 import app.kept.R
@@ -79,10 +80,10 @@ class WatcherService : Service() {
             signer = key,
             program = app.program,
             store = app.reflexStore,
-            // SOL only until the SKR path proves it cannot capture unrelated wallet balances.
-            rules = { app.prefs.rules()?.copy(asset = BankAsset.Sol) },
+            // Staked SKR banking is mainnet only; anywhere else every win banks as SOL.
+            rules = { app.prefs.rules()?.let { if (BuildConfig.CLUSTER == "mainnet-beta") it else it.copy(asset = BankAsset.Sol) } },
             onBank = { notifyBank(it) },
-            skrBank = JupiterSkrBank(Jupiter(), app.rpc, key, app.program),
+            skrBank = if (BuildConfig.CLUSTER == "mainnet-beta") JupiterSkrBank(Jupiter(), RpcSkrChain(app.rpc), key, app.program) else null,
             skrTier = {
                 val main = app.prefs.mainWallet
                 main != null && app.rpc.tokenBalance(main, SkrStaking.MINT.toBase58()) >= app.skrTierRaw
