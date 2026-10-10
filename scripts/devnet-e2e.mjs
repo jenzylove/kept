@@ -77,3 +77,5 @@ console.log('sell confirmed at', new Date(t0).toISOString());
 writeFileSync(new URL('../docs/spikes/devnet-e2e-output.json', import.meta.url), JSON.stringify({
   mint: mint.toBase58(), buy: buySig, sell: sellSig, buyLamports, sellLamports, sellConfirmedAt: new Date().toISOString(),
 }, null, 2));
+
+process.exit(0); // web3.js keeps a confirmation websocket open

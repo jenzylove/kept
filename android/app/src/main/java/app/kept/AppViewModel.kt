@@ -198,9 +198,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         tradingLamports = tradingLamports, skrRaw = skr, log = kept.reflexStore.load().log,
                         skr = skrPos, bankAsset = kept.prefs.bankAsset,
                         reflexOn = vault != null && kept.prefs.vaultReady && kept.prefs.reflexEnabled, loaded = true,
+                        // a network error from a refresh is stale once a later refresh succeeds
+                        error = if (it.error?.startsWith(NETWORK_ERROR) == true) null else it.error,
                     )
                 }
-            }.onFailure { e -> _state.update { it.copy(loaded = true, error = "Couldn't reach the network: ${e.message?.take(120)}") } }
+            }.onFailure { e -> _state.update { it.copy(loaded = true, error = "$NETWORK_ERROR ${e.message?.take(120)}") } }
         }
     }
 
@@ -419,6 +421,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun exportTradingKey(): String? = kept.tradingKey.exportBase58()
 
     companion object {
+        const val NETWORK_ERROR = "Couldn't reach the network:"
         const val SKR_MINT = "SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3"
         fun short(s: String) = if (s.length > 10) s.take(4) + "…" + s.takeLast(4) else s
     }

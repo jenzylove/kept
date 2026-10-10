@@ -1,0 +1,23 @@
+{
+  "device": "Samsung Galaxy S22 Ultra (SM-S908U), Phantom, devnet",
+  "owner": "J8zCXXr2rEwzuFPikyCGo1fkBpJUpTrTnSiNJPmtjyZk",
+  "tradingWallet": "91UUS9KpAojscmM79E6YotYjf8peTESnURThM5emsBH9",
+  "vault": "FVkGiMqJNL7HxFRA49L81nh4hNb3A54gn78LaDgxxEjy",
+  "vaultTxs": [
+    {
+      "sig": "55PrgT5LfsQqXmT4x1mDgHGY7BKogdhZP1syxCm6aa1Uwu9eKZvKzdSvXyMnthVmZDDbaRhgf1Sprv7H4TWu6ACa",
+      "slot": 509376698,
+      "time": "2026-10-10T01:35:43.000Z"
+    },
+    {
+      "sig": "4yGdCmNTRiKYR9HsLKzuiZPWNVSLhy4FiXrDV2nkJhGaUisKuWGV2VYaJa7pbpNBRKEBJyJbVzDk4FvZwGmsiSSE",
+      "slot": 509373779,
+      "time": "2026-10-10T01:24:05.000Z"
+    },
+    {
+      "sig": "eVY6XNZPTRWQBMuncvvoeUF87RtE78J5KCKYbk7YYtzfWHHc14jqzoy81TiiAbRBpCUybeAjKdoQQjNEx456z9H",
+      "slot": 508948377,
+      "time": "2026-10-08T21:12:10.000Z"
+    }
+  ]
+}
