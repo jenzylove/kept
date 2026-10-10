@@ -97,5 +97,5 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 | Android kills the service | known, foreground service + catch-up |
 | Mirror speed on public RPC | known, needs Helius key |
 | MWA on emulator (no Seed Vault) | known, use a test wallet app; Seeker for the video if available |
-| Mainnet deploy cost (about 1.5 to 2.5 SOL rent, recoverable) | known, needs funds |
+| Mainnet deploy cost | done 2026-10-10: 0.2305 SOL after the program rewrite, recoverable by closing the program |
 | dApp Store review time | known, submit early on Oct 8 |
