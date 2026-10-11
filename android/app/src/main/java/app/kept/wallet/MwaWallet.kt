@@ -88,9 +88,9 @@ class MwaWallet(
      * walletUriBase, which can leave later local associations targeting a stale wallet endpoint
      * after the user cancels or Android restores the activity. The auth token remains reusable.
      */
-    private fun newAdapter() = MobileWalletAdapter(mwaConnectionIdentity()).apply {
+    private fun newAdapter(useSavedLogin: Boolean = true) = MobileWalletAdapter(mwaConnectionIdentity()).apply {
         blockchain = if (mainnet) Solana.Mainnet else Solana.Devnet
-        authToken = prefs.walletAuthToken
+        authToken = if (useSavedLogin) prefs.walletAuthToken else null
     }
 
     private suspend fun <T> perform(operation: suspend (MobileWalletAdapter) -> TransactionResult<T>): TransactionResult.Success<T> =
@@ -99,16 +99,17 @@ class MwaWallet(
             warmIdentity()
             var adapter = newAdapter()
             var result = operation(adapter)
-            // A wallet app that has just started gives our site one second to prove this app is ours,
-            // and on a phone network that often runs out. It refuses before showing anything, so
-            // nothing was signed and asking once more is safe; by then the wallet is awake.
+            // Seen on a real phone: a wallet app that has just started turns down the login it gave us
+            // earlier, in about a hundredth of a second, before showing anything. Nothing was signed,
+            // so it is safe to ask again. Asking with no saved login makes the wallet show its own
+            // connect screen, which it does accept; the wallet check inside the request still makes
+            // sure it is the same wallet as before.
             var asks = 1
             while (result is TransactionResult.Failure && isIdentityRefusal(result.e) && asks < 3) {
-                android.util.Log.w("KeptMwa", "wallet could not verify the app in time, asking again ($asks)")
-                // Give a wallet that has just started a moment to finish its own loading.
-                kotlinx.coroutines.delay(1_500)
+                android.util.Log.w("KeptMwa", "wallet turned down the saved login, asking it to connect afresh ($asks)")
+                kotlinx.coroutines.delay(700)
                 warmIdentity()
-                adapter = newAdapter()
+                adapter = newAdapter(useSavedLogin = false)
                 result = operation(adapter)
                 asks++
             }
@@ -124,7 +125,7 @@ class MwaWallet(
                         prefs.walletAuthToken = null
                     }
                     val message = if (isIdentityRefusal(result.e)) {
-                        "Your wallet app could not confirm Kept in time, which happens on a slow connection. Nothing was sent. Try again in a moment."
+                        "Your wallet app would not confirm Kept just now. Nothing was sent. Open your wallet app once, come back, and try again."
                     } else if (result.message.contains("local association", ignoreCase = true)) {
                         "Couldn't reconnect to the wallet app. Close the wallet approval, return to Kept, and retry. Use Change wallet if it repeats."
                     } else {
