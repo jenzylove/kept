@@ -91,7 +91,7 @@ fun openExplorer(context: Context, kind: String, id: String) {
 val ScreenPadding: Dp = 22.dp
 
 /** Room at the foot of a scrolling screen so nothing hides under the floating tab bar. */
-val TabBarSpace: Dp = 128.dp
+val TabBarSpace: Dp = 150.dp
 
 /** The main action: a near black pill. It dips a little when pressed. */
 @Composable
@@ -261,13 +261,14 @@ fun KeptField(value: String, onChange: (String) -> Unit, hint: String, modifier:
 @Composable
 fun BigAmount(value: String, onChange: (String) -> Unit, unit: String) {
     val c = Kept.colors
-    val style = MaterialTheme.typography.displayLarge.merge(NumberStyle).copy(fontSize = 56.sp)
+    // Long amounts step down in size so they stay on one line.
+    val style = MaterialTheme.typography.displayLarge.merge(NumberStyle).copy(fontSize = when { value.length > 13 -> 30.sp; value.length > 9 -> 40.sp; else -> 56.sp })
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
         Box(Modifier.weight(1f)) {
             if (value.isEmpty()) Text("0", style = style, color = c.line)
             BasicTextField(
                 value = value,
-                onValueChange = { v -> if (v.length <= 12 && v.all { it.isDigit() || it == '.' } && v.count { it == '.' } <= 1) onChange(v) },
+                onValueChange = { v -> if (v.length <= 20 && v.all { it.isDigit() || it == '.' } && v.count { it == '.' } <= 1) onChange(v) },
                 singleLine = true, modifier = Modifier.fillMaxWidth(),
                 textStyle = style.copy(color = c.text), cursorBrush = SolidColor(c.accent),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

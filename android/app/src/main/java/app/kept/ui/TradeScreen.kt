@@ -270,57 +270,83 @@ private fun BuyForm(vm: AppViewModel, s: AppState, t: Token, amount: String, onA
 }
 
 @Composable
-private fun SellForm(vm: AppViewModel, s: AppState, t: Token, held: AppViewModel.Held?, percent: String, onPercent: (String) -> Unit, onChange: () -> Unit) {
+private fun SellForm(vm: AppViewModel, s: AppState, t: Token, held: AppViewModel.Held?, amount: String, onAmount: (String) -> Unit, onChange: () -> Unit) {
     val c = Kept.colors
     val raw = held?.raw ?: 0L
-    val rawIn = percentageOf(raw, percent)
+    val all = rawToInput(raw, t.decimals)
+    // "All of it" sells exactly what is held, down to the last unit.
+    val typed = if (amount == all) raw else tokenInputToRaw(amount, t.decimals)
+    val tooMuch = typed != null && typed > raw
+    val rawIn = typed?.takeIf { it in 1..raw }
     val q = rememberQuote(vm, t.mint, Jupiter.SOL, rawIn)
 
     Chosen(t, onChange)
-    StatRow("You hold", "${Tokens.amount(raw, t.decimals)} ${t.symbol}")
-    held?.costLamports?.let { StatRow("You paid", "${fmtSol(it)} SOL") }
-    Spacer(Modifier.height(20.dp))
-    Label("Sell how much")
-    Spacer(Modifier.height(10.dp))
-    Chips(listOf("25" to "25%", "50" to "50%", "100" to "All of it"), percent, { raw > 0 }) { onPercent(it) }
+    Label("Sell")
+    Spacer(Modifier.height(6.dp))
+    BigAmount(amount, onAmount, t.symbol)
+    Spacer(Modifier.height(8.dp))
+    Text("You hold ${Tokens.amount(raw, t.decimals)} ${t.symbol}" + (held?.costLamports?.let { ", bought for ${fmtSol(it)} SOL" } ?: ""), style = MaterialTheme.typography.bodyMedium, color = c.dim)
+    Spacer(Modifier.height(14.dp))
+    Chips(
+        listOf(rawToInput(raw / 4, t.decimals) to "25%", rawToInput(raw / 2, t.decimals) to "Half", all to "All of it"),
+        amount, { raw > 0 },
+    ) { onAmount(it) }
     Spacer(Modifier.height(18.dp))
     when {
         raw == 0L -> Text("You don't hold any ${t.symbol} right now.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+        tooMuch -> Text("That is more than you hold. The most you can sell is ${Tokens.amount(raw, t.decimals)} ${t.symbol}.", style = MaterialTheme.typography.bodyMedium, color = c.loss)
         q.error != null -> Text(q.error, style = MaterialTheme.typography.bodyMedium, color = c.loss)
         q.quote != null && rawIn != null -> {
             StatRow("You get about", "${fmtSol(q.quote.outAmount)} SOL")
             Impact(q.quote)
-            Spacer(Modifier.height(16.dp))
             KeptPreview(s, held?.costLamports, raw, rawIn, q.quote.outAmount)
             Spacer(Modifier.height(18.dp))
-            val label = if (percent == "100") "Sell all ${t.symbol}" else "Sell $percent% of ${t.symbol}"
+            val label = if (rawIn == raw) "Sell all ${t.symbol}" else "Sell ${Tokens.amount(rawIn, t.decimals)} ${t.symbol}"
             KeptButton(label, { vm.swap(q.quote, "Selling…", "Sold. If that was a win, your share lands in the vault in a few seconds.") }, busy = s.busy != null)
         }
         rawIn != null -> Text("Finding the best price…", style = MaterialTheme.typography.bodyMedium, color = c.dim)
     }
 }
 
-/** Before the sell: what this sale means for the vault. */
+/** Under this much either way, a sale is called even: it is smaller than the fees around it. */
+private const val EVEN_LAMPORTS = 50_000L
+
+/**
+ * Before the sale: the sum Kept will do. What this part cost, what the sale brings, the profit, and
+ * so what goes to the vault. Shown as rows so the answer does not hide inside a sentence.
+ */
 @Composable
 private fun KeptPreview(s: AppState, costLamports: Long?, heldRaw: Long, sellRaw: Long, outLamports: Long) {
     val c = Kept.colors
     val bps = s.vault?.bankBps ?: 5000
-    val text: String
-    val win: Boolean
     if (costLamports == null || heldRaw <= 0) {
-        text = "Kept did not see you buy this, so it can't tell if this sale is a win. Nothing moves to the vault."
-        win = false
-    } else {
-        val costPart = java.math.BigInteger.valueOf(costLamports).multiply(java.math.BigInteger.valueOf(sellRaw)).divide(java.math.BigInteger.valueOf(heldRaw)).toLong()
-        val profit = outLamports - costPart
-        if (profit > 0) {
-            text = "That is about ${fmtSol(profit)} SOL more than you paid. Kept moves ${fmtSol(profit * bps / 10_000)} SOL of it to your vault."
-            win = true
-        } else {
-            text = "That is about ${fmtSol(-profit)} SOL less than you paid, so nothing moves to the vault."
-            win = false
-        }
+        Spacer(Modifier.height(16.dp))
+        VaultLine("Nothing goes to your vault. Kept did not see you buy this token, so it cannot tell whether this sale is a win.", win = false)
+        return
     }
+    val costPart = java.math.BigInteger.valueOf(costLamports).multiply(java.math.BigInteger.valueOf(sellRaw)).divide(java.math.BigInteger.valueOf(heldRaw)).toLong()
+    val profit = outLamports - costPart
+    StatRow("You paid for this part", "${fmtSol(costPart)} SOL")
+    StatRow(
+        "Profit on this sale",
+        when {
+            profit > EVEN_LAMPORTS -> "+${fmtSol(profit)} SOL"
+            profit < -EVEN_LAMPORTS -> "−${fmtSol(-profit)} SOL"
+            else -> "About even"
+        },
+        valueColor = if (profit > EVEN_LAMPORTS) c.accent else if (profit < -EVEN_LAMPORTS) c.loss else c.dim,
+    )
+    Spacer(Modifier.height(16.dp))
+    if (profit > 0) {
+        VaultLine("${fmtSol(profit * bps / 10_000)} SOL goes to your vault. That is ${bps / 100}% of the profit, moved by Kept right after the sale.", win = true)
+    } else {
+        VaultLine("Nothing goes to your vault. Kept only keeps a share when you sell for more than you paid.", win = false)
+    }
+}
+
+@Composable
+private fun VaultLine(text: String, win: Boolean) {
+    val c = Kept.colors
     Row(Modifier.fillMaxWidth().background(if (win) c.accentSoft else c.raised, RoundedCornerShape(20.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {
         Box(Modifier.padding(top = 6.dp).size(8.dp).background(if (win) c.accent else c.dim, CircleShape))
         Spacer(Modifier.width(12.dp))
@@ -356,6 +382,19 @@ private fun fmtUsd(v: Double): String = when {
     v >= 0.01 -> String.format(Locale.US, "$%.4f", v)
     else -> "$" + java.math.BigDecimal(v).round(java.math.MathContext(3)).toPlainString()
 }
+
+/** A typed token amount as raw units, or null if it is not a positive number with at most [decimals] places. */
+private fun tokenInputToRaw(input: String, decimals: Int): Long? {
+    val v = input.trim()
+    if (!v.matches(Regex("^[0-9]+(?:\\.[0-9]*)?$"))) return null
+    return runCatching {
+        java.math.BigDecimal(v.trimEnd('.')).movePointRight(decimals).setScale(0, java.math.RoundingMode.DOWN).longValueExact().takeIf { it > 0 }
+    }.getOrNull()
+}
+
+/** Raw units as a number someone could have typed: no grouping, no trailing zeros. */
+private fun rawToInput(raw: Long, decimals: Int): String =
+    java.math.BigDecimal.valueOf(raw).movePointLeft(decimals).stripTrailingZeros().toPlainString()
 
 private fun lamportsToInput(lamports: Long): String =
     java.math.BigDecimal.valueOf(lamports).movePointLeft(9).setScale(4, java.math.RoundingMode.DOWN).stripTrailingZeros().toPlainString()

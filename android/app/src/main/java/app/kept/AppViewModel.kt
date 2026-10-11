@@ -426,13 +426,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun swap(quote: Jupiter.Quote, label: String, done: String) = work(label) {
         if (!MAINNET) error("In app trading only works on mainnet")
         val key = kept.tradingKey.load() ?: error("No trading wallet")
-        val tx = jupiter.signedSwap(quote, key)
-        rpc.simulateSigned(tx)
+        // The price on screen may be a minute old by the time the button is pressed, and a stale price is
+        // the usual reason a swap is turned down. So it is priced again now, and once more if the first
+        // try is turned down.
+        suspend fun attempt(): Pair<String, app.kept.chain.Rpc.Landing> {
+            val fresh = jupiter.quote(quote.inMint, quote.outMint, quote.inAmount)
+            val tx = jupiter.signedSwap(fresh, key)
+            rpc.simulateSigned(tx)
+            return rpc.sendUntilLanded(tx)
+        }
+        fun turnedDown(e: app.kept.chain.RpcException) = e.code == -2 || e.code == -3
         val (sig, landing) = try {
-            rpc.sendUntilLanded(tx)
-        } catch (e: app.kept.chain.RpcException) {
-            if (e.code == -2) error("The trade ran and was turned down, usually because the price moved too far. Nothing was traded. Try again.")
-            throw e
+            attempt()
+        } catch (first: app.kept.chain.RpcException) {
+            if (!turnedDown(first)) throw first
+            delay(600)
+            try {
+                attempt()
+            } catch (second: app.kept.chain.RpcException) {
+                if (turnedDown(second)) error("The price kept moving and the trade was turned down twice. Nothing was traded. Try again in a moment.")
+                throw second
+            }
         }
         when (landing) {
             app.kept.chain.Rpc.Landing.Confirmed -> Unit

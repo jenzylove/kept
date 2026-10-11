@@ -1,6 +1,7 @@
 package app.kept.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
@@ -35,7 +36,7 @@ import androidx.compose.runtime.collectAsState
 @Composable
 fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: String?) {
     val ui by vm.mirror.collectAsState()
-    var address by rememberSaveable { mutableStateOf(connectedWallet.orEmpty()) }
+    var address by rememberSaveable { mutableStateOf("") }
     val c = Kept.colors
     val ctx = LocalContext.current
 
@@ -51,6 +52,12 @@ fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: Stri
         Spacer(Modifier.height(28.dp))
 
         KeptField(address, { address = it.trim() }, "Wallet address", keyboard = KeyboardType.Ascii, address = true)
+        if (connectedWallet != null && address.isBlank()) {
+            Text(
+                "Use my trading wallet", style = MaterialTheme.typography.labelLarge, color = c.accent,
+                modifier = Modifier.clickable { address = connectedWallet }.padding(top = 12.dp, bottom = 2.dp),
+            )
+        }
         Spacer(Modifier.height(12.dp))
         KeptButton(if (ui.running) "Reading…" else "Read this wallet", onClick = { vm.runMirror(address) }, busy = ui.running, enabled = address.isNotBlank())
 
