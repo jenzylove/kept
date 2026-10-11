@@ -166,32 +166,49 @@ class WatcherService : Service() {
             .setContentIntent(open())
             .build()
 
+    private val tokens by lazy { app.kept.trade.Tokens() }
+
+    /** "Kept 0.0100 SOL from SKR", then the win and what the vault holds now. Names and totals are looked up, and left out if that fails. */
     private fun notifyBank(e: BankEntry) {
-        val nm = getSystemService(android.app.NotificationManager::class.java)
-        val sol = String.format(Locale.US, "%.4f", e.amountLamports / 1e9)
-        val (title, text) = when (e.status) {
-            BankEntry.Status.Pending -> return
-            BankEntry.Status.Confirmed -> if (e.asset == "SKR") {
-                "Staked SKR for $sol SOL" to (if (e.stakedSkrRaw > 0) "Your share of a win on ${short(e.mint)} is now staked SKR in your vault." else "Bought SKR with your share. It will be staked with your next win.")
-            } else "Banked $sol SOL" to "Kept your share of a win on ${short(e.mint)}${if (e.late) " (found late)" else ""}."
-            BankEntry.Status.Failed -> "Bank didn't go through" to (e.reason ?: "We'll try again.")
-            BankEntry.Status.NoVault -> "Win not banked" to "Open Kept and create your vault."
-            BankEntry.Status.TooSmall -> return
+        if (e.status == BankEntry.Status.Pending || e.status == BankEntry.Status.TooSmall) return
+        scope.launch {
+            val app = application as KeptApp
+            val sol = { l: Long -> String.format(Locale.US, "%.4f", l / 1e9) }
+            val name = runCatching { tokens.byMint(listOf(e.mint))[e.mint]?.symbol }.getOrNull() ?: short(e.mint)
+            val vaultNow = runCatching {
+                val owner = PublicKey(app.prefs.mainWallet!!)
+                val address = app.program.vaultAddress(owner).toBase58()
+                (app.rpc.balance(address) - app.rpc.minimumBalanceForRentExemption(VAULT_SIZE)).coerceAtLeast(0)
+            }.getOrNull()
+            val (title, text) = when (e.status) {
+                BankEntry.Status.Confirmed -> if (e.asset == "SKR") {
+                    "Kept ${sol(e.amountLamports)} SOL from $name, as staked SKR" to
+                        (if (e.stakedSkrRaw > 0) "Win of ${sol(e.profitLamports)} SOL. Your share is now staked SKR in your vault." else "Win of ${sol(e.profitLamports)} SOL. The SKR is staked with your next win.")
+                } else {
+                    "Kept ${sol(e.amountLamports)} SOL from $name" to
+                        ("Win of ${sol(e.profitLamports)} SOL." + (vaultNow?.let { " Vault: ${sol(it)} SOL." } ?: "") + (if (e.late) " Found late." else ""))
+                }
+                BankEntry.Status.Failed -> "A win on $name was not kept" to (e.reason ?: "Kept will try again.")
+                BankEntry.Status.NoVault -> "A win on $name was not kept" to "Open Kept and open your vault."
+                else -> return@launch
+            }
+            getSystemService(android.app.NotificationManager::class.java).notify(
+                e.sellSignature.hashCode(),
+                NotificationCompat.Builder(this@WatcherService, KeptApp.CHANNEL_BANKED)
+                    .setSmallIcon(R.drawable.ic_stat_kept)
+                    .setContentTitle(title)
+                    .setContentText(text)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                    .setContentIntent(open())
+                    .setAutoCancel(true)
+                    .build(),
+            )
         }
-        nm.notify(
-            e.sellSignature.hashCode(),
-            NotificationCompat.Builder(this, KeptApp.CHANNEL_BANKED)
-                .setSmallIcon(R.drawable.ic_stat_kept)
-                .setContentTitle(title)
-                .setContentText(text)
-                .setContentIntent(open())
-                .setAutoCancel(true)
-                .build(),
-        )
     }
 
     companion object {
         private const val NOTE_ID = 1
+        private val VAULT_SIZE = app.kept.chain.VaultProgram.VAULT_ACCOUNT_SIZE
         private const val TIMER_MS = 15_000L
 
         fun start(context: Context) {

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Mark } from '@/components/Mark';
-import { APK_URL, CLUSTER, VAULT_PROGRAM, solscan } from '@/lib/config';
+import { APK_URL, VAULT_PROGRAM } from '@/lib/config';
 
 export const metadata = { title: 'Judges: five minutes, no keys' };
 
@@ -36,7 +36,7 @@ export default function Judges() {
             <div>
               <div>
                 <h3>Check the chain, not our word.</h3>
-                <p>The <Link href="/proof">proof page</Link> reads the vault program’s own events on {CLUSTER}. Every bank links to its transaction and to the sell that caused it. Program: <a className="mono" href={solscan('account', VAULT_PROGRAM)} target="_blank" rel="noreferrer">{VAULT_PROGRAM.slice(0, 4)}…{VAULT_PROGRAM.slice(-4)}</a>.</p>
+                <p>The <Link href="/proof">proof page</Link> reads the vault program’s own records on mainnet and on the test network. Every bank links to its transaction and to the sell that caused it. Program: <a className="mono" href={`https://solscan.io/account/${VAULT_PROGRAM}`} target="_blank" rel="noreferrer">{VAULT_PROGRAM.slice(0, 4)}…{VAULT_PROGRAM.slice(-4)}</a>.</p>
               </div>
             </div>
             <div>
