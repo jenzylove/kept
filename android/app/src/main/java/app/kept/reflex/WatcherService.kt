@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import app.kept.BuildConfig
 import app.kept.KeptApp
+import app.kept.chain.Net
 import app.kept.MainActivity
 import app.kept.R
 import app.kept.chain.SkrStaking
@@ -124,7 +125,7 @@ class WatcherService : Service() {
     /** Hold one websocket open until it drops. Returns true if it connected. */
     private suspend fun socket(app: KeptApp, address: String, nudge: Channel<Unit>): Boolean {
         var connected = false
-        val client = app.kept.chain.Net.client(pingSec = 20)
+        val client = Net.client(pingSec = 20)
         suspendCancellableCoroutine { cont ->
             val ws = client.newWebSocket(
                 Request.Builder().url(app.wsUrl).build(),
