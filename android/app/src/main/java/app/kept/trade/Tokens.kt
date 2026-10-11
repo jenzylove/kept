@@ -20,7 +20,7 @@ import okhttp3.Request
 data class Token(val mint: String, val symbol: String, val name: String, val decimals: Int, val usdPrice: Double?, val verified: Boolean, val icon: String? = null)
 
 /** Names, tickers and prices for tokens, from Jupiter's public token search. Display only: nothing here is signed. */
-class Tokens(private val client: OkHttpClient = OkHttpClient()) {
+class Tokens(private val client: OkHttpClient = app.kept.chain.Net.client()) {
     private val known = HashMap<String, Token>()
 
     /** Search by ticker, name or address. Verified tokens first. */

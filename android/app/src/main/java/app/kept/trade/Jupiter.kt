@@ -23,7 +23,7 @@ interface SwapSource {
 }
 
 /** Swaps for the trading wallet through Jupiter, signed on this phone. */
-class Jupiter(private val client: OkHttpClient = OkHttpClient()) : SwapSource {
+class Jupiter(private val client: OkHttpClient = app.kept.chain.Net.client()) : SwapSource {
     private val json = Json { ignoreUnknownKeys = true }
 
     data class Quote(val raw: JsonObject, val inMint: String, val outMint: String, val inAmount: Long, val outAmount: Long, val priceImpactPct: String?)

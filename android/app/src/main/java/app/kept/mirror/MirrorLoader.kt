@@ -40,7 +40,7 @@ class MirrorLoader(private val rpc: Rpc, private val historyUrl: String = "") {
     )
 
     private val json = Json { ignoreUnknownKeys = true }
-    private val http = OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(40, TimeUnit.SECONDS).build()
+    private val http = app.kept.chain.Net.client(connectSec = 15, readSec = 40)
 
     suspend fun load(
         address: String,

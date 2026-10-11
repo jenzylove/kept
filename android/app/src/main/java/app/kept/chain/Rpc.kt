@@ -302,10 +302,6 @@ class Rpc(val url: String, private val client: OkHttpClient = defaultClient()) {
 
     companion object {
         private val JSON = "application/json".toMediaType()
-        fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .pingInterval(25, TimeUnit.SECONDS)
-            .build()
+        fun defaultClient(): OkHttpClient = Net.client(connectSec = 15, readSec = 30, pingSec = 25)
     }
 }
