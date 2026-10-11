@@ -252,7 +252,7 @@ private fun Sheet(title: String, onDismiss: () -> Unit, content: @Composable Col
 }
 
 @Composable
-private fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long, Boolean) -> Unit) {
+internal fun WithdrawDialog(s: AppState, onDismiss: () -> Unit, onRequest: (Long, Boolean) -> Unit) {
     val c = Kept.colors
     val v = s.vault!!
     var amount by remember { mutableStateOf("") }
