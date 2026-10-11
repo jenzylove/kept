@@ -17,7 +17,9 @@ import org.sol4k.PublicKey
 
 internal const val MWA_IDENTITY_URI = "https://kept-seeker.vercel.app"
 internal const val MWA_ICON_RELATIVE_URI = "favicon.ico"
-internal const val MWA_OPERATION_TIMEOUT_MS = 70_000L
+// Time for the person to read and approve in their wallet app. Slow phones take ten seconds just to
+// show the wallet, so this is generous; it exists only so a lost session cannot hang forever.
+internal const val MWA_OPERATION_TIMEOUT_MS = 240_000L
 
 internal suspend fun <T> withWalletOperationTimeout(
     timeoutMs: Long = MWA_OPERATION_TIMEOUT_MS,
@@ -88,30 +90,29 @@ class MwaWallet(
      * walletUriBase, which can leave later local associations targeting a stale wallet endpoint
      * after the user cancels or Android restores the activity. The auth token remains reusable.
      */
-    private fun newAdapter(useSavedLogin: Boolean = true) = MobileWalletAdapter(mwaConnectionIdentity()).apply {
+    /**
+     * Every request starts with the wallet's own connect screen, not a saved login. Measured on a real
+     * phone: a wallet app that has just started turns down a saved login in a hundredth of a second,
+     * every time, and each refusal costs the user a wasted trip to the wallet. A fresh connect is one
+     * extra tap and it is always accepted. The wallet check inside each request makes sure it is the
+     * same wallet as before.
+     */
+    private fun newAdapter() = MobileWalletAdapter(mwaConnectionIdentity()).apply {
         blockchain = if (mainnet) Solana.Mainnet else Solana.Devnet
-        authToken = if (useSavedLogin) prefs.walletAuthToken else null
+        authToken = null
     }
 
     private suspend fun <T> perform(operation: suspend (MobileWalletAdapter) -> TransactionResult<T>): TransactionResult.Success<T> =
         withWalletOperationTimeout {
             sessionLock.withLock {
-            warmIdentity()
             var adapter = newAdapter()
             var result = operation(adapter)
-            // Seen on a real phone: a wallet app that has just started turns down the login it gave us
-            // earlier, in about a hundredth of a second, before showing anything. Nothing was signed,
-            // so it is safe to ask again. Asking with no saved login makes the wallet show its own
-            // connect screen, which it does accept; the wallet check inside the request still makes
-            // sure it is the same wallet as before.
-            var asks = 1
-            while (result is TransactionResult.Failure && isIdentityRefusal(result.e) && asks < 3) {
-                android.util.Log.w("KeptMwa", "wallet turned down the saved login, asking it to connect afresh ($asks)")
-                kotlinx.coroutines.delay(700)
-                warmIdentity()
-                adapter = newAdapter(useSavedLogin = false)
+            // A refusal at the connect step happens before anything is signed, so asking once more is safe.
+            if (result is TransactionResult.Failure && isIdentityRefusal(result.e)) {
+                android.util.Log.w("KeptMwa", "wallet refused at the connect step, asking once more")
+                kotlinx.coroutines.delay(800)
+                adapter = newAdapter()
                 result = operation(adapter)
-                asks++
             }
             when (result) {
                 is TransactionResult.Success -> {
@@ -136,8 +137,6 @@ class MwaWallet(
             }
         }
         }
-
-    private suspend fun warmIdentity() = IdentityWarmth.prime(maxWaitMs = 9_000)
 
     override suspend fun connect(): PublicKey {
         val result = perform { it.connect(sender) }
