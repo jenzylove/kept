@@ -31,6 +31,34 @@ internal suspend fun <T> withWalletOperationTimeout(
     )
 }
 
+/**
+ * A wallet app checks a file on our site before it will talk to this app, and gives that check about
+ * one second. On some phone networks the first lookup of any site's name takes around six seconds
+ * (measured on a real phone), which fails the check before it starts. The phone remembers a name
+ * once any app has looked it up, so Kept looks ours up first, and waits for that to finish, before
+ * it opens the wallet. Never fails the operation it serves.
+ */
+internal object IdentityWarmth {
+    @Volatile private var warmAt = 0L
+    private const val FRESH_MS = 20_000L
+
+    suspend fun prime(maxWaitMs: Long) {
+        if (System.currentTimeMillis() - warmAt < FRESH_MS) return
+        runCatching {
+            kotlinx.coroutines.withTimeoutOrNull(maxWaitMs) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val url = java.net.URL("$MWA_IDENTITY_URI/.well-known/assetlinks.json")
+                    java.net.InetAddress.getAllByName(url.host)
+                    val c = url.openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 4_000; c.readTimeout = 4_000
+                    try { c.inputStream.use { it.readBytes() } } finally { c.disconnect() }
+                    warmAt = System.currentTimeMillis()
+                }
+            }
+        }
+    }
+}
+
 /** True when the wallet declined at the authorization step, before any request to sign reached the user. */
 internal fun isIdentityRefusal(e: Throwable?): Boolean =
     generateSequence(e) { it.cause }.take(8).any { it.message?.contains("authorization request failed", ignoreCase = true) == true }
@@ -108,18 +136,7 @@ class MwaWallet(
         }
         }
 
-    /** Fetch the file wallets verify us against, so the network path to it is warm. Never fails the operation. */
-    private suspend fun warmIdentity() {
-        runCatching {
-            kotlinx.coroutines.withTimeoutOrNull(2_500) {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val c = java.net.URL("$MWA_IDENTITY_URI/.well-known/assetlinks.json").openConnection() as java.net.HttpURLConnection
-                    c.connectTimeout = 2_000; c.readTimeout = 2_000
-                    try { c.inputStream.use { it.readBytes() } } finally { c.disconnect() }
-                }
-            }
-        }
-    }
+    private suspend fun warmIdentity() = IdentityWarmth.prime(maxWaitMs = 9_000)
 
     override suspend fun connect(): PublicKey {
         val result = perform { it.connect(sender) }

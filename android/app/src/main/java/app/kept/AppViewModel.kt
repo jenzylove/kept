@@ -9,6 +9,7 @@ import app.kept.mirror.MirrorLoader
 import app.kept.reflex.BankEntry
 import app.kept.reflex.WatcherService
 import app.kept.trade.Jupiter
+import app.kept.wallet.IdentityWarmth
 import app.kept.trade.Token
 import app.kept.trade.Tokens
 import app.kept.wallet.MainWallet
@@ -163,6 +164,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refresh() {
+        // Keep the phone's memory of our site's name fresh, so a wallet request made next is not held up by it.
+        viewModelScope.launch { IdentityWarmth.prime(maxWaitMs = 9_000) }
         viewModelScope.launch {
             val s = _state.value
             val main = s.mainWallet
