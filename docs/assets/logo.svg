@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#0e0f0c"/>
-  <path d="M14,48 L14,36 L30,20 L30,34 L46,20 L46,48 Z" fill="#d6a94a"/>
+  <defs>
+    <linearGradient id="a" x1="0" y1="1" x2="0.4" y2="0"><stop offset="0" stop-color="#63e2f1"/><stop offset="1" stop-color="#8ca6ff"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="1" x2="0.4" y2="0"><stop offset="0" stop-color="#8ca6ff"/><stop offset="1" stop-color="#c3a6ff"/></linearGradient>
+    <linearGradient id="c" x1="0" y1="1" x2="0.4" y2="0"><stop offset="0" stop-color="#c3a6ff"/><stop offset="1" stop-color="#f6b4e4"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+  <polygon points="23,50 26,48.5 32,27.5 29,29" fill="#6f8ff2"/><polygon points="13,50 23,50 29,29 19,29" fill="url(#a)"/>
+  <polygon points="36,43 39,41.5 45,18.5 42,20" fill="#8b7cf0"/><polygon points="26,43 36,43 42,20 32,20" fill="url(#b)"/>
+  <polygon points="49,36 52,34.5 58,9.5 55,11" fill="#b58af0"/><polygon points="39,36 49,36 55,11 45,11" fill="url(#c)"/>
 </svg>
