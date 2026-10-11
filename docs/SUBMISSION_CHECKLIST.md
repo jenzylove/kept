@@ -4,8 +4,8 @@ Ticked only from the live app or the submitted form, never from intent. Deadline
 
 | Requirement | Proof | Done |
 |---|---|---|
-| Functional Android APK | Signed release build 1.1.0, run on a Samsung Galaxy S22 Ultra on mainnet. Attached to a GitHub Release at submission | [ ] |
-| GitHub repo with source (public) | github.com/jenzylove/kept, made public at submission | [ ] |
+| Functional Android APK | Signed release build 1.1.0, run on a Samsung Galaxy S22 Ultra on mainnet. [Release v1.1.0](https://github.com/jenzylove/kept/releases/tag/v1.1.0), download link returns 200 | [x] |
+| GitHub repo with source (public) | github.com/jenzylove/kept, public since 2026-10-11 | [x] |
 | Demo video showing the app in use | 81 seconds, built from real screen recordings and the live site | [ ] |
 | Pitch deck or short presentation | [kept-seeker.vercel.app/deck.pdf](https://kept-seeker.vercel.app/deck.pdf), 8 slides | [x] |
 | Mobile first app for Seeker | Native Android, Kotlin and Compose | [x] |
