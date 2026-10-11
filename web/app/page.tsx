@@ -27,7 +27,7 @@ export default function Home() {
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <a className="btn" href={APK_URL}>Get the app</a>
-            <a className="btn ghost" href="#mirror">See what you would have kept</a>
+            <a className="btn ghost" href="#mirror">Check any wallet</a>
           </div>
         </section>
 
@@ -37,9 +37,9 @@ export default function Home() {
 
         <section className="wrap" id="mirror" style={{ padding: '24px 24px 96px' }}>
           <div className="narrow">
-            <h2>Try it on <em>any wallet.</em></h2>
+            <h2>Check a wallet before you <em>follow it.</em></h2>
             <p className="dim" style={{ margin: '16px 0 26px' }}>
-              Paste a Solana wallet, yours or one you are curious about. Kept reads its real trades from the last 90 days and shows what it won, what it gave back, and what would be sitting in a vault today.
+              Paste any Solana wallet: a caller, a dev, a friend, or your own. Kept reads its real trades from the last 90 days and shows how often it wins, how much it gives back, and what would be sitting in a vault today.
             </p>
             <Mirror />
           </div>

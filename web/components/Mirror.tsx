@@ -4,6 +4,7 @@ import { useState } from 'react';
 // A copy of /engine/src/engine.js (the profit engine the Android app and the tests use). A test fails if it drifts.
 import { mirrorEnhanced as runMirrorEnhanced, bankAmount } from '@/lib/engine.js';
 import { Staircase } from './Staircase';
+import { readWallet } from '@/lib/read';
 
 type Win = { sig: string; mint: string; profit: bigint; time: number | null };
 
@@ -70,6 +71,7 @@ export function Mirror({ initial = '' }: { initial?: string }) {
   }
 
   const empty = result && result.wins.length === 0 && result.losses.length === 0;
+  const read = result ? readWallet(result, result.truncated) : null;
 
   return (
     <div>
@@ -90,28 +92,43 @@ export function Mirror({ initial = '' }: { initial?: string }) {
       {state === 'done' && result && (
         <div style={{ marginTop: 48 }}>
           <div className="label">Last 90 days</div>
-          {empty ? (
+          {empty || !read ? (
             <>
               <h2 style={{ marginTop: 14 }}>No winning sells <em>found.</em></h2>
               <p className="dim">We read {result.scanned} transactions and found no sale we could price in the last 90 days.</p>
             </>
           ) : (
             <>
-              <div className="big" style={{ marginTop: 14 }}>{sol(result.won)} <span className="dim" style={{ fontSize: '0.28em', letterSpacing: 0 }}>SOL</span></div>
-              <p className="dim" style={{ marginTop: 8 }}>won on {result.wins.length} winning {result.wins.length === 1 ? 'sell' : 'sells'}</p>
+              <h2 style={{ marginTop: 14 }}>{read.verdict[0]}<em>{read.verdict[1]}</em></h2>
+              {read.partial && (
+                <p className="dim" style={{ marginTop: 10 }}>
+                  {result.truncated
+                    ? 'This wallet trades more than we could read, so this is its most recent stretch, not all 90 days.'
+                    : `${read.unpricedPercent}% of its sales could not be priced, so treat this as a partial picture.`}
+                </p>
+              )}
+              <div className="label" style={{ marginTop: 30 }}>{read.net >= 0n ? 'Made overall' : 'Lost overall'}</div>
+              <div className={`big${read.net < 0n ? ' loss' : ''}`} style={{ marginTop: 6 }}>
+                {read.net >= 0n ? '+' : '−'}{sol(read.net < 0n ? -read.net : read.net)} <span className="dim" style={{ fontSize: '0.28em', letterSpacing: 0 }}>SOL</span>
+              </div>
               <div style={{ margin: '32px 0 10px' }}><Staircase wallet={result.wallet} kept={result.keptSeries} /></div>
-              <p className="label" style={{ display: 'flex', gap: 22 }}>
+              <p className="label" style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
                 <span><i style={{ display: 'inline-block', width: 14, height: 4, borderRadius: 4, background: 'var(--loss)', marginRight: 8, verticalAlign: 'middle' }} />What the wallet made</span>
-                <span><i style={{ display: 'inline-block', width: 14, height: 4, borderRadius: 4, background: 'var(--brass)', marginRight: 8, verticalAlign: 'middle' }} />Kept at 50%</span>
+                <span><i style={{ display: 'inline-block', width: 14, height: 4, borderRadius: 4, background: 'var(--brass)', marginRight: 8, verticalAlign: 'middle' }} />If half of each win was kept</span>
               </p>
               <div style={{ marginTop: 28 }}>
-                <div className="stat"><span>Gave back on {result.losses.length} losing {result.losses.length === 1 ? 'sell' : 'sells'}</span><span className="mono loss">−{sol(result.givenBack)} SOL</span></div>
-                <div className="stat"><span>In your vault, if Kept had been on</span><span className="mono brass">{sol(result.kept)} SOL</span></div>
-                {result.unpriced > 0 && <div className="stat"><span>Sales we could not price (not counted)</span><span className="mono">{result.unpriced}</span></div>}
+                <div className="stat"><span>Sales that won</span><span className="mono">{result.wins.length} of {result.wins.length + result.losses.length} ({read.winPercent}%)</span></div>
+                <div className="stat"><span>Won on those</span><span className="mono">+{sol(result.won)} SOL</span></div>
+                <div className="stat"><span>Gave back on the rest</span><span className="mono loss">−{sol(result.givenBack)} SOL</span></div>
+                {read.gaveBackPercent !== null && <div className="stat"><span>Share of winnings given back</span><span className={`mono${read.gaveBackPercent > 35 ? ' loss' : ''}`}>{read.gaveBackPercent}%</span></div>}
+                <div className="stat"><span>A typical win</span><span className="mono">+{sol(read.typicalWin, 3)} SOL</span></div>
+                {result.losses.length > 0 && <div className="stat"><span>A typical loss</span><span className="mono">−{sol(read.typicalLoss, 3)} SOL</span></div>}
+                {result.losses.length > 0 && <div className="stat"><span>Biggest single loss</span><span className="mono">−{sol(read.biggestLoss, 3)} SOL</span></div>}
+                {result.unpriced > 0 && <div className="stat"><span>Sales we could not price</span><span className="mono">{result.unpriced}</span></div>}
+                <div className="stat"><span>In a vault today, with Kept on</span><span className="mono brass">{sol(result.kept)} SOL</span></div>
               </div>
               <p className="dim" style={{ fontSize: 14, marginTop: 14 }}>
-                Computed from this wallet’s real transactions over {result.scanned} reads. A plain sum: it ignores how keeping part of each win would have changed your later trade sizes.
-                {result.truncated && ' History was longer than we read, so older trades are not counted.'}
+                Worked out from {result.scanned} of this wallet’s real transactions. It is a record of what happened, not advice, and a good record does not promise the next trade.
               </p>
               <div className="label" style={{ margin: '28px 0 6px' }}>Biggest wins, with proof</div>
               {[...result.wins].sort((p, q) => (q.profit > p.profit ? 1 : -1)).slice(0, 5).map((w) => (

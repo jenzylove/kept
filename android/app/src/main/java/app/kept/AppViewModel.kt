@@ -219,6 +219,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Mirror -------------------------------------------------------------------------------
 
+    /** Holding the SKR tier in the connected wallet opens the longer look back and the watch list. */
+    fun hasSkrTier() = _state.value.skrRaw >= kept.skrTierRaw
+    fun mirrorDays() = if (hasSkrTier()) 90 else 30
+
+    private val _watched = MutableStateFlow(kept.prefs.watched)
+    val watched: StateFlow<List<String>> = _watched.asStateFlow()
+
+    fun watch(address: String) {
+        if (!hasSkrTier()) return
+        kept.prefs.watched = listOf(address) + kept.prefs.watched
+        _watched.value = kept.prefs.watched
+    }
+
+    fun unwatch(address: String) {
+        kept.prefs.watched = kept.prefs.watched - address
+        _watched.value = kept.prefs.watched
+    }
+
     fun runMirror(address: String) {
         val a = address.trim()
         if (runCatching { PublicKey(a).bytes().size }.getOrDefault(0) != 32) {
@@ -228,7 +246,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _mirror.value = MirrorUi(running = true)
             try {
-                val r = MirrorLoader(rpc, BuildConfig.HISTORY_URL).load(a, onProgress = { p -> _mirror.update { it.copy(progress = p.fetched to p.total) } })
+                val r = MirrorLoader(rpc, BuildConfig.HISTORY_URL).load(a, days = mirrorDays(), onProgress = { p -> _mirror.update { it.copy(progress = p.fetched to p.total) } })
                 _mirror.value = MirrorUi(result = r)
             } catch (e: Exception) {
                 _mirror.value = MirrorUi(error = "Couldn't read that wallet: ${e.message?.take(120)}")
