@@ -447,6 +447,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val tokens = Tokens()
 
     suspend fun searchTokens(query: String) = tokens.search(query)
+    suspend fun starterTokens() = tokens.starters()
 
     /** What the trading wallet holds, with a name for each token and what Kept saw it cost. */
     data class Held(val token: Token, val raw: Long, val costLamports: Long?)

@@ -124,7 +124,8 @@ private fun Root(vm: AppViewModel, kept: KeptApp, onExport: (onKey: (String) -> 
     var tab by rememberSaveable { mutableStateOf(Tab.Vault) }
 
     when {
-        !s.loaded -> Unit
+        // While the first read of the chain is in flight, the mark holds the screen.
+        !s.loaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { app.kept.ui.Wordmark() }
         s.vault != null -> Box(Modifier.fillMaxSize()) {
             when (tab) {
                 Tab.Vault -> HomeScreen(vm, s)
@@ -152,8 +153,8 @@ private fun TabBar(selected: Tab, modifier: Modifier = Modifier, onSelect: (Tab)
     val c = Kept.colors
     Row(
         modifier.navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 14.dp).fillMaxWidth()
-            .shadow(24.dp, CircleShape, ambientColor = c.accent.copy(alpha = 0.18f), spotColor = c.accent.copy(alpha = 0.28f))
-            .background(Color.White, CircleShape).border(1.dp, Color.White, CircleShape).padding(6.dp),
+            .shadow(22.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.10f), spotColor = Color.Black.copy(alpha = 0.16f))
+            .background(Color.White, CircleShape).border(1.dp, c.line, CircleShape).padding(6.dp),
     ) {
         Tab.entries.forEach { t ->
             val on = t == selected

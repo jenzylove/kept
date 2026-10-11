@@ -21,10 +21,10 @@ object ShareCard {
     private const val W = 1080
     private const val H = 1350
 
-    private val INK = 0xFFF7F6FB.toInt()
-    private val BONE = 0xFF15131F.toInt()
+    private val INK = 0xFFF6F7F9.toInt()
+    private val BONE = 0xFF121217.toInt()
     private val DIM = 0xFF716E82.toInt()
-    private val BRASS = 0xFF6A4BF4.toInt()
+    private val BRASS = 0xFF4A3AE8.toInt()
     private val LOSS = 0xFFDB4B3A.toInt()
     private val LINE = 0xFFE3E0EE.toInt()
 
@@ -36,7 +36,7 @@ object ShareCard {
         c.drawColor(INK)
         // the same lilac sky as the app
         c.drawRect(0f, 0f, W.toFloat(), H * 0.5f, Paint().apply {
-            shader = android.graphics.LinearGradient(0f, 0f, 0f, H * 0.5f, 0xFFE9E3FF.toInt(), INK, android.graphics.Shader.TileMode.CLAMP)
+            shader = android.graphics.LinearGradient(0f, 0f, 0f, H * 0.5f, 0xFFFFFFFF.toInt(), INK, android.graphics.Shader.TileMode.CLAMP)
         })
 
         fun paint(color: Int, size: Float, face: Typeface, spacing: Float = 0f) = Paint(Paint.ANTI_ALIAS_FLAG).apply {

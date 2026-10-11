@@ -110,6 +110,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Token pictures on the Trade screen.
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     implementation("org.sol4k:sol4k:0.8.2")
     implementation("com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.8")

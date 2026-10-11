@@ -17,7 +17,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 /** A token as a person knows it: a ticker and a name, not an address. */
-data class Token(val mint: String, val symbol: String, val name: String, val decimals: Int, val usdPrice: Double?, val verified: Boolean)
+data class Token(val mint: String, val symbol: String, val name: String, val decimals: Int, val usdPrice: Double?, val verified: Boolean, val icon: String? = null)
 
 /** Names, tickers and prices for tokens, from Jupiter's public token search. Display only: nothing here is signed. */
 class Tokens(private val client: OkHttpClient = OkHttpClient()) {
@@ -28,6 +28,12 @@ class Tokens(private val client: OkHttpClient = OkHttpClient()) {
         val url = "$BASE/search?query=${URLEncoder.encode(query.trim(), "UTF-8")}"
         val body = client.newCall(Request.Builder().url(url).build()).execute().use { it.body?.string().orEmpty() }
         parse(body).also { list -> synchronized(known) { list.forEach { known[it.mint] = it } } }
+    }
+
+    /** The tokens offered before the user types anything, with their pictures once the service answers. */
+    suspend fun starters(): List<Token> {
+        val found = byMint(STARTERS.map { it.mint })
+        return STARTERS.map { s -> found[s.mint]?.let { s.copy(icon = it.icon, usdPrice = it.usdPrice) } ?: s }
     }
 
     /** Look up tokens by address; anything the service does not know is left out. */
@@ -65,6 +71,8 @@ class Tokens(private val client: OkHttpClient = OkHttpClient()) {
                     decimals = decimals,
                     usdPrice = o["usdPrice"]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0 && it.isFinite() },
                     verified = o["isVerified"]?.jsonPrimitive?.booleanOrNull == true,
+                    // Pictures are only ever loaded over https.
+                    icon = o["icon"]?.jsonPrimitive?.contentOrNull?.takeIf { it.startsWith("https://") && it.length < 400 },
                 )
             }.sortedByDescending { it.verified }
         }

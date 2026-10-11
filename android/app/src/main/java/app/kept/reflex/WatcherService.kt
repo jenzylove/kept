@@ -42,11 +42,21 @@ class WatcherService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    /** Android kills the app if a foreground service is slow to show its notice, so show it at the first chance. */
+    private fun goForeground() {
         ServiceCompat.startForeground(
             this, NOTE_ID, watchingNotification("Starting…"),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
         )
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        runCatching { goForeground() }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        goForeground()
         if (!started) {
             started = true
             scope.launch { run() }

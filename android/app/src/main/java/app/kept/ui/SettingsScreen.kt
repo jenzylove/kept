@@ -41,7 +41,7 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
     val ignoring = (ctx.getSystemService(android.content.Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(ctx.packageName)
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
-        Text("Your rules", style = MaterialTheme.typography.headlineMedium, color = c.text)
+        Headline("Your rules", "rules", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(24.dp))
 
         if (v != null) {

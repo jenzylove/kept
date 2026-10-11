@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -102,7 +103,7 @@ fun KeptButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier,
     val on = enabled && !busy
     Box(
         modifier.fillMaxWidth().height(58.dp).scale(scale)
-            .shadow(if (on) 14.dp else 0.dp, CircleShape, ambientColor = c.accent.copy(alpha = 0.25f), spotColor = c.accent.copy(alpha = 0.35f))
+            .shadow(if (on) 14.dp else 0.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.18f), spotColor = Color.Black.copy(alpha = 0.28f))
             .background(if (enabled) c.text else c.raised, CircleShape)
             .clip(CircleShape)
             .clickable(interactionSource = source, indication = null, enabled = on, onClick = onClick),
@@ -125,6 +126,45 @@ fun KeptGhostButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
     ) { Text(text, style = MaterialTheme.typography.labelLarge, color = if (enabled) c.text else c.dim, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
+/**
+ * A headline with one word leaning: [lean] (which must appear in [text]) is set in the italic serif
+ * and the kept colour, the way the brand writes "You won more than you kept."
+ */
+@Composable
+fun Headline(text: String, lean: String, modifier: Modifier = Modifier, style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.displayMedium) {
+    val c = Kept.colors
+    val at = text.lastIndexOf(lean)
+    val built = androidx.compose.ui.text.buildAnnotatedString {
+        if (at < 0) { append(text); return@buildAnnotatedString }
+        append(text.substring(0, at))
+        pushStyle(LeanStyle.toSpanStyle().copy(color = c.accent, fontSize = style.fontSize * 1.12f))
+        append(lean)
+        pop()
+        append(text.substring(at + lean.length))
+    }
+    Text(built, style = style, color = c.text, modifier = modifier)
+}
+
+/** The mark and the name, as they sit at the top of a screen. */
+@Composable
+fun Wordmark(name: String = "Kept") {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        KeptMark(30.dp)
+        Spacer(Modifier.width(8.dp))
+        Text(name, style = MaterialTheme.typography.headlineMedium, color = Kept.colors.text)
+    }
+}
+
+/** Let something run past the screen's side padding, edge to edge. */
+fun Modifier.bleed(pad: Dp): Modifier = this.then(
+    Modifier.layout { measurable, constraints ->
+        val extra = (pad * 2).roundToPx()
+        val wide = constraints.maxWidth + extra
+        val placeable = measurable.measure(constraints.copy(minWidth = wide, maxWidth = wide))
+        layout(constraints.maxWidth, placeable.height) { placeable.place(-pad.roundToPx(), 0) }
+    },
+)
+
 /** A small quiet label above a value or a group. */
 @Composable
 fun Label(text: String, modifier: Modifier = Modifier) {
@@ -143,7 +183,7 @@ fun Panel(modifier: Modifier = Modifier, padding: Dp = 22.dp, content: @Composab
     val shape = RoundedCornerShape(30.dp)
     Column(
         modifier.fillMaxWidth()
-            .shadow(26.dp, shape, ambientColor = c.accent.copy(alpha = 0.10f), spotColor = c.accent.copy(alpha = 0.18f))
+            .shadow(26.dp, shape, ambientColor = Color.Black.copy(alpha = 0.06f), spotColor = Color.Black.copy(alpha = 0.10f))
             .background(c.glass, shape).border(1.dp, Color.White, shape).clip(shape).padding(padding),
         content = content,
     )
@@ -237,12 +277,15 @@ fun BigAmount(value: String, onChange: (String) -> Unit, unit: String) {
     }
 }
 
-/** A round badge with a token's first letter, tinted from its address so each token keeps its own colour. */
+/** A token's own picture in a circle. Until it loads, or if it has none, a tinted letter stands in. */
 @Composable
-fun Monogram(symbol: String, seed: String, size: Dp = 42.dp) {
-    val tints = listOf(0xFF6A4BF4, 0xFF2E8BF0, 0xFF1FA971, 0xFFE9843A, 0xFFD94F8C, 0xFF14A6A6)
+fun TokenIcon(symbol: String, seed: String, icon: String?, size: Dp = 42.dp) {
+    val tints = listOf(0xFF4A3AE8, 0xFF2E8BF0, 0xFF18A46B, 0xFFE9843A, 0xFFD94F8C, 0xFF14A6A6)
     val tint = Color(tints[(seed.hashCode() and 0x7FFFFFFF) % tints.size])
-    Box(Modifier.size(size).background(tint.copy(alpha = 0.14f), CircleShape), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(size).background(tint.copy(alpha = 0.12f), CircleShape).clip(CircleShape), contentAlignment = Alignment.Center) {
         Text(symbol.take(1).uppercase(), style = MaterialTheme.typography.titleMedium, color = tint)
+        if (!icon.isNullOrBlank()) {
+            coil.compose.AsyncImage(model = icon, contentDescription = null, modifier = Modifier.size(size).clip(CircleShape), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+        }
     }
 }

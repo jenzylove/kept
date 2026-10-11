@@ -1,11 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- A ratchet tooth: a slope up, then a hard stop that cannot slide back. -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M30,72 L30,60 L54,36 L54,56 L78,36 L78,72 Z" />
+    <!-- Three glass slabs, each a step above the last. -->
+    <path android:pathData="M44,72 L49,70 L54,46 L49,48 Z" android:fillColor="#6F8FF2" />
+    <path android:pathData="M33,72 L44,72 L49,48 L38,48 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="33" android:startY="72" android:endX="49" android:endY="48">
+                <item android:offset="0" android:color="#63E2F1" />
+                <item android:offset="1" android:color="#8CA6FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M59,65 L64,63 L69,34 L64,36 Z" android:fillColor="#8B7CF0" />
+    <path android:pathData="M48,65 L59,65 L64,36 L53,36 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="48" android:startY="65" android:endX="64" android:endY="36">
+                <item android:offset="0" android:color="#8CA6FF" />
+                <item android:offset="1" android:color="#C3A6FF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M74,58 L79,56 L84,22 L79,24 Z" android:fillColor="#B58AF0" />
+    <path android:pathData="M63,58 L74,58 L79,24 L68,24 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="63" android:startY="58" android:endX="79" android:endY="24">
+                <item android:offset="0" android:color="#C3A6FF" />
+                <item android:offset="1" android:color="#F6B4E4" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

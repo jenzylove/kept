@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.kept.AppState
 import app.kept.AppViewModel
 import app.kept.chain.VaultProgram
@@ -61,9 +62,9 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Kept", style = MaterialTheme.typography.headlineMedium, color = c.text)
+            Wordmark()
             Row(
-                Modifier.background(c.glass, CircleShape).border(1.dp, Color.White, CircleShape).padding(start = 14.dp, end = 6.dp),
+                Modifier.background(c.glass, CircleShape).border(1.dp, c.line, CircleShape).padding(start = 14.dp, end = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(8.dp).background(if (s.reflexOn) c.ok else c.dim, CircleShape))
@@ -91,42 +92,28 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
         val numberColor by animateColorAsState(if (flash) c.accent else c.text, tween(700), label = "flash")
         val series = remember(home, v?.bankBps) { home?.let { Engine.series(it.mirror, v?.bankBps ?: 5000) } }
         val wins = v?.bankCount ?: 0L
-        // One glass step for each win kept. Before the trade history has loaded, the count alone draws them.
-        val steps = remember(series, wins) {
-            series?.let { stairSteps(it.kept) }?.takeIf { it.isNotEmpty() }
-                ?: if (wins > 0) (1..minOf(wins, 6L).toInt()).map { 0.18f + 0.82f * it / minOf(wins, 6L).toInt() } else emptyList()
-        }
+        val (lit, total) = stairCounts(wins)
 
-        Panel(padding = 0.dp) {
-            Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp)) {
-                Label("In your vault")
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(fmtSol(shown.toLong()), style = MaterialTheme.typography.displayLarge.merge(NumberStyle), color = numberColor)
-                    Text("SOL", style = MaterialTheme.typography.titleMedium, color = c.dim, modifier = Modifier.padding(start = 10.dp, bottom = 11.dp))
-                }
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    when {
-                        v == null -> ""
-                        wins == 0L -> "Nothing kept yet. Your first win builds the first step."
-                        else -> "Kept from $wins ${if (wins == 1L) "win" else "wins"}. It only goes up."
-                    },
-                    style = MaterialTheme.typography.bodyMedium, color = c.dim,
-                )
-            }
-            GlassStairs(steps, Modifier.padding(horizontal = 18.dp).padding(top = 10.dp), height = 176.dp)
-            if (v != null) {
-                Hairline()
-                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 15.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Keeps ${v.bankBps / 100}% of each win", style = MaterialTheme.typography.labelSmall, color = c.text)
-                    if (wins > 0) {
-                        Text("Share", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable {
-                            ShareCard.share(ctx, home?.mirror?.won?.toLong() ?: 0L, v.totalBanked, wins.toInt(), series?.wallet ?: emptyList(), series?.kept ?: emptyList())
-                        })
-                    } else {
-                        Text("${fmtDuration(v.cooldownSecs)} wait to take out", style = MaterialTheme.typography.labelSmall, color = c.dim)
-                    }
+        Spacer(Modifier.height(10.dp))
+        Label("In your vault")
+        Spacer(Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(fmtSol(shown.toLong()), style = MaterialTheme.typography.displayLarge.merge(NumberStyle).copy(fontSize = 76.sp, lineHeight = 78.sp), color = numberColor)
+            Text("SOL", style = MaterialTheme.typography.titleMedium, color = c.dim, modifier = Modifier.padding(start = 10.dp, bottom = 15.dp))
+        }
+        if (v != null) {
+            if (wins == 0L) Headline("Nothing kept yet. Your first win lights the first step.", "first step.", style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp))
+            else Headline("Kept from $wins ${if (wins == 1L) "win" else "wins"}. It only goes up.", "only goes up.", style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp))
+        }
+        // The staircase runs off both edges of the screen, the way a real one keeps going.
+        GlassStairs(lit, total, Modifier.bleed(ScreenPadding).padding(top = 6.dp), height = 230.dp)
+        if (v != null) {
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Keeps ${v.bankBps / 100}% of each win · ${fmtDuration(v.cooldownSecs)} wait to take out", style = MaterialTheme.typography.labelSmall, color = c.dim, modifier = Modifier.weight(1f))
+                if (wins > 0) {
+                    Text("Share", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable {
+                        ShareCard.share(ctx, home?.mirror?.won?.toLong() ?: 0L, v.totalBanked, wins.toInt(), series?.wallet ?: emptyList(), series?.kept ?: emptyList())
+                    }.padding(start = 12.dp, top = 4.dp, bottom = 4.dp))
                 }
             }
         }
@@ -138,14 +125,14 @@ fun HomeScreen(vm: AppViewModel, s: AppState) {
             v != null && v.hasPendingWithdraw -> PendingWithdraw(vm, s, v)
             s.vaultLamports > 0 -> KeptGhostButton("Take money out", { withdrawOpen = true }, enabled = s.busy == null)
             needsSol -> {
-                Text("Next, put some SOL in your trading wallet.", style = MaterialTheme.typography.headlineMedium, color = c.text)
+                Headline("Next, put some SOL in your trading wallet.", "trading wallet.", style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(8.dp))
                 Text("That is the wallet you trade from. It lives on this phone.", style = MaterialTheme.typography.bodyLarge, color = c.dim)
                 Spacer(Modifier.height(16.dp))
                 KeptButton("Add SOL to trade with", { fundOpen = true }, enabled = s.busy == null)
             }
             v != null -> {
-                Text("You are set. Go trade.", style = MaterialTheme.typography.headlineMedium, color = c.text)
+                Headline("You are set. Go trade.", "Go trade.", style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Each time you sell for more than you paid, ${v.bankBps / 100}% of the profit moves here by itself. Nothing moves on a loss.",

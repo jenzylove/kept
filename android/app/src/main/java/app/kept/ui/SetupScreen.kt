@@ -58,7 +58,7 @@ fun SetupScreen(vm: AppViewModel, s: AppState) {
     BackHandler(enabled = step > 1, onBack = goBack)
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = 40.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Kept", style = MaterialTheme.typography.headlineMedium, color = c.text)
+            Wordmark()
             if (step > 1) Text("Back", style = MaterialTheme.typography.labelLarge, color = c.accent, modifier = Modifier.clickable(onClick = goBack).padding(8.dp))
         }
         Spacer(Modifier.height(22.dp))
@@ -101,7 +101,7 @@ fun SetupScreen(vm: AppViewModel, s: AppState) {
 @Composable
 private fun ConnectStep(vm: AppViewModel, s: AppState, onContinue: () -> Unit) {
     val c = Kept.colors
-    Text("Connect the wallet that owns your vault.", style = MaterialTheme.typography.displayMedium, color = c.text)
+    Headline("Connect the wallet that owns your vault.", "your vault.")
     Spacer(Modifier.height(14.dp))
     Text(
         "On a Seeker this is your Seed Vault, and you confirm with a double tap. On any other Android phone, use a wallet app like Phantom or Solflare. Kept never sees this wallet's key.",
@@ -123,7 +123,7 @@ private fun TradingStep(vm: AppViewModel, s: AppState, onContinue: () -> Unit) {
     val c = Kept.colors
     val ctx = LocalContext.current
     var amount by rememberSaveable { mutableStateOf("0.1") }
-    Text("Make your trading wallet.", style = MaterialTheme.typography.displayMedium, color = c.text)
+    Headline("Make your trading wallet.", "trading wallet.")
     Spacer(Modifier.height(14.dp))
     Text(
         "A new wallet made on this phone, for trading. Its key is locked inside the phone and never leaves unless you reveal it. Trade with it in Kept or in any other app. Kept watches it and keeps part of every win.",
@@ -161,7 +161,7 @@ private fun VaultStep(vm: AppViewModel, s: AppState) {
     var bps by rememberSaveable { mutableStateOf(5000) }
     var cooldown by rememberSaveable { mutableStateOf(ONE_DAY) }
     val tier = s.skrRaw >= SKR_TIER_RAW
-    Text("Open your vault.", style = MaterialTheme.typography.displayMedium, color = c.text)
+    Headline("Open your vault.", "vault.")
     Spacer(Modifier.height(14.dp))
     Text(
         "Every time you sell for more than you paid, Kept moves part of the profit into your vault. Money goes in at once. To take it out you ask, then wait. You can cancel any time.",

@@ -40,12 +40,12 @@ fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: Stri
     val ctx = LocalContext.current
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
-        Text(if (onStart == null) "Mirror" else "Kept", style = MaterialTheme.typography.headlineMedium, color = c.text)
+        if (onStart == null) Text("Mirror", style = MaterialTheme.typography.headlineMedium, color = c.text) else Wordmark()
         Spacer(Modifier.height(26.dp))
-        Text("You won more than you kept.", style = MaterialTheme.typography.displayMedium, color = c.text)
+        Headline("You won more than you kept.", "kept.")
         Spacer(Modifier.height(14.dp))
         Text(
-            "Paste any Solana wallet. We read its real trades and show what it won, what it gave back, and what would be sitting in a vault if every win had been banked.",
+            "Paste any Solana wallet. We read its real trades and show what it won, what it gave back, and what would be sitting in a vault if part of every win had been kept.",
             style = MaterialTheme.typography.bodyLarge, color = c.dim,
         )
         Spacer(Modifier.height(28.dp))
@@ -67,9 +67,9 @@ fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: Stri
             Label("Last ${r.days} days")
             Spacer(Modifier.height(10.dp))
             if (m.wins.isEmpty() && m.losses.isEmpty()) {
-                Text("No priced sells found.", style = MaterialTheme.typography.headlineMedium, color = c.text)
+                Headline("No winning sells found.", "found.", style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(8.dp))
-                Text("We read ${r.scanned} transactions and found no sell with a known cost in this window.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
+                Text("We read ${r.scanned} transactions and found no sale we could price in the last ${r.days} days.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
             } else {
                 Panel {
                     Row(verticalAlignment = Alignment.Bottom) {
@@ -112,7 +112,7 @@ fun MirrorScreen(vm: AppViewModel, onStart: (() -> Unit)?, connectedWallet: Stri
             KeptGhostButton("Skip, set up Kept", onStart)
             if (!ui.running) {
                 Spacer(Modifier.height(34.dp))
-                GlassStairs(listOf(0.2f, 0.34f, 0.5f, 0.66f, 0.82f, 1f), height = 230.dp)
+                GlassStairs(30, 30, Modifier.bleed(ScreenPadding), height = 260.dp)
                 Spacer(Modifier.height(14.dp))
                 Text("Each win you keep is a step. The stairs only go up.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
             }

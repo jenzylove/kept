@@ -84,7 +84,7 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
         Spacer(Modifier.height(20.dp))
 
         if (app.kept.BuildConfig.CLUSTER != "mainnet-beta") {
-            Text("Trading opens on mainnet.", style = MaterialTheme.typography.displayMedium, color = c.text)
+            Headline("Trading opens on mainnet.", "mainnet.")
             Spacer(Modifier.height(12.dp))
             Text(
                 "This is a test build on Solana devnet, where there is no market to trade on. Trade from this wallet with any other app and Kept still banks every win.",
@@ -122,7 +122,7 @@ private fun ModeHalf(text: String, on: Boolean, modifier: Modifier, onClick: () 
     val c = Kept.colors
     val fill by animateColorAsState(if (on) Color.White else Color.Transparent, tween(200), label = "mode")
     Box(
-        modifier.height(46.dp).shadow(if (on) 6.dp else 0.dp, CircleShape, ambientColor = c.accent.copy(alpha = 0.2f), spotColor = c.accent.copy(alpha = 0.2f))
+        modifier.height(46.dp).shadow(if (on) 6.dp else 0.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.12f), spotColor = Color.Black.copy(alpha = 0.16f))
             .background(fill, CircleShape).clip(CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp), color = if (on) c.text else c.dim) }
@@ -135,6 +135,8 @@ private fun TokenSearch(vm: AppViewModel, onPick: (Token) -> Unit) {
     var results by remember { mutableStateOf<List<Token>?>(null) }
     var searching by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
+    var starters by remember { mutableStateOf(Tokens.STARTERS) }
+    LaunchedEffect(Unit) { runCatching { vm.starterTokens() }.onSuccess { starters = it } }
 
     LaunchedEffect(query) {
         failed = false
@@ -157,7 +159,7 @@ private fun TokenSearch(vm: AppViewModel, onPick: (Token) -> Unit) {
     when {
         list == null -> {
             Label("Popular")
-            Tokens.STARTERS.forEach { TokenRow(it, trailing = null) { onPick(it) } }
+            starters.forEach { t -> TokenRow(t, trailing = t.usdPrice?.let(::fmtUsd)) { onPick(t) } }
         }
         searching && list.isEmpty() -> Text("Searching…", style = MaterialTheme.typography.bodyMedium, color = c.dim)
         failed -> Text("Couldn't search right now. Check your connection and try again.", style = MaterialTheme.typography.bodyMedium, color = c.dim)
@@ -172,7 +174,7 @@ private fun HoldingList(holdings: List<AppViewModel.Held>?, onPick: (AppViewMode
     when {
         holdings == null -> Text("Reading your trading wallet…", style = MaterialTheme.typography.bodyMedium, color = c.dim)
         holdings.isEmpty() -> {
-            Text("Nothing to sell yet.", style = MaterialTheme.typography.headlineMedium, color = c.text)
+            Headline("Nothing to sell yet.", "yet.", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(8.dp))
             Text("Buy a token and it shows up here, with what you paid for it.", style = MaterialTheme.typography.bodyLarge, color = c.dim)
         }
@@ -194,7 +196,7 @@ private fun TokenRow(t: Token, trailing: String?, sub: String? = null, onClick: 
     val c = Kept.colors
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Monogram(t.symbol, t.mint)
+            TokenIcon(t.symbol, t.mint, t.icon)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -217,7 +219,7 @@ private fun TokenRow(t: Token, trailing: String?, sub: String? = null, onClick: 
 private fun Chosen(t: Token, onChange: () -> Unit) {
     val c = Kept.colors
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Monogram(t.symbol, t.mint, size = 48.dp)
+        TokenIcon(t.symbol, t.mint, t.icon, size = 48.dp)
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(t.symbol, style = MaterialTheme.typography.headlineMedium, color = c.text, maxLines = 1)

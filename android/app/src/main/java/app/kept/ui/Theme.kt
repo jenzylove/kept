@@ -16,9 +16,10 @@ import androidx.compose.ui.unit.sp
 import app.kept.R
 
 /**
- * Kept's look: daylight and glass. A pale lilac sky, white frosted panels, near black type and one
- * violet that always means "kept". The signature picture is a staircase of glass steps that only
- * ever goes up. Tokens live here so the look can change in one place.
+ * Kept's look: a white room and coloured glass. Near black type on an off white page, one indigo
+ * that always means "kept", and one word of each headline set in an italic serif. The signature
+ * picture is a staircase of glass slabs that catch the light and only ever climb. Tokens live here
+ * so the look can change in one place.
  */
 data class KeptColors(
     val page: Color,        // the ground
@@ -37,19 +38,19 @@ data class KeptColors(
 )
 
 val LightKept = KeptColors(
-    page = Color(0xFFF7F6FB),
-    skyTop = Color(0xFFE9E3FF),
-    skyBottom = Color(0xFFFBF1EE),
-    glass = Color(0xFFFEFDFF),
-    raised = Color(0xFFEFEDF6),
-    line = Color(0xFFE3E0EE),
-    text = Color(0xFF15131F),
-    dim = Color(0xFF716E82),
-    accent = Color(0xFF6A4BF4),
-    accentSoft = Color(0xFFE8E1FF),
-    loss = Color(0xFFDB4B3A),
-    lossSoft = Color(0xFFFDE8E4),
-    ok = Color(0xFF1FA971),
+    page = Color(0xFFF6F7F9),
+    skyTop = Color(0xFFFFFFFF),
+    skyBottom = Color(0xFFF1F2F6),
+    glass = Color(0xFFFFFFFF),
+    raised = Color(0xFFECEEF3),
+    line = Color(0xFFE1E4EB),
+    text = Color(0xFF121217),
+    dim = Color(0xFF6A6E7A),
+    accent = Color(0xFF4A3AE8),
+    accentSoft = Color(0xFFEAE8FF),
+    loss = Color(0xFFD8452F),
+    lossSoft = Color(0xFFFCE9E5),
+    ok = Color(0xFF18A46B),
 )
 
 val LocalKept = staticCompositionLocalOf { LightKept }
@@ -57,11 +58,11 @@ val LocalKept = staticCompositionLocalOf { LightKept }
 object Kept {
     val colors: KeptColors @Composable get() = LocalKept.current
 
-    /** The wash behind every screen: lilac at the top, clearing to pearl, warming a little at the foot. */
+    /** The wash behind every screen: white at the top, settling to a soft grey at the foot. */
     val sky: Brush
         @Composable get() {
             val c = colors
-            return Brush.verticalGradient(0f to c.skyTop, 0.42f to c.page, 0.8f to c.page, 1f to c.skyBottom)
+            return Brush.verticalGradient(0f to c.skyTop, 0.5f to c.page, 1f to c.skyBottom)
         }
 }
 
@@ -71,8 +72,10 @@ private fun variable(res: Int, weight: Int) = Font(
     variationSettings = FontVariation.Settings(FontVariation.weight(weight)),
 )
 
-// Geist for words and numbers, Geist Mono for addresses. Both are SIL OFL.
+// Geist for words and numbers, Instrument Serif Italic for the one word a headline leans on,
+// Geist Mono for addresses. All SIL OFL.
 private val Sans = FontFamily(variable(R.font.geist, 400), variable(R.font.geist, 500), variable(R.font.geist, 600), variable(R.font.geist, 700))
+private val Serif = FontFamily(Font(R.font.instrument_serif_italic))
 private val Mono = FontFamily(variable(R.font.geist_mono, 400), variable(R.font.geist_mono, 500))
 
 val KeptType = Typography(
@@ -88,6 +91,9 @@ val KeptType = Typography(
 
 /** Numbers read as numbers: every digit the same width, so a counting total does not wobble. */
 val NumberStyle = TextStyle(fontFamily = Sans, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")
+
+/** The one word a headline leans on: italic serif, in the kept colour. */
+val LeanStyle = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Normal, letterSpacing = 0.sp)
 
 /** Addresses and keys: the one place a monospace earns its keep. */
 val AddressStyle = TextStyle(fontFamily = Mono, fontWeight = FontWeight.Normal)
