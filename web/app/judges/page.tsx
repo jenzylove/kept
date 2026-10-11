@@ -10,13 +10,13 @@ export default function Judges() {
       <div className="wrap">
         <header className="top">
           <Link className="mark" href="/"><Mark /> Kept</Link>
-          <nav><Link href="/proof">Proof</Link><Link href="/judges">Judges</Link></nav>
+          <nav><Link href="/proof">Proof</Link><Link href="/judges">Judges</Link><Link href="/limits">Plain terms</Link></nav>
         </header>
       </div>
       <main className="wrap" style={{ padding: '56px 24px 96px' }}>
         <div className="narrow">
           <div className="label" style={{ marginBottom: 20 }}>Judges</div>
-          <h1 style={{ fontSize: 'clamp(40px, 6.5vw, 76px)' }}>Five minutes. No keys.</h1>
+          <h1 style={{ fontSize: 'clamp(40px, 6.5vw, 76px)' }}>Five minutes. <em>No keys.</em></h1>
           <p className="dim" style={{ margin: '24px 0 40px' }}>
             Everything below works without an account. The first step needs only a browser. The rest needs an Android phone or emulator.
           </p>
@@ -30,13 +30,13 @@ export default function Judges() {
             <div>
               <div>
                 <h3>See the problem in your own numbers.</h3>
-                <p>Open the <Link href="/" style={{ color: 'var(--brass)' }}>front page</Link>, paste any Solana wallet, press Read. You get what it won, what it gave back, and what would be in a vault if every win had been banked. Each win links to its transaction.</p>
+                <p>Open the <Link href="/">front page</Link>, paste any Solana wallet, press Read. You get what it won, what it gave back, and what would be in a vault if every win had been banked. Each win links to its transaction.</p>
               </div>
             </div>
             <div>
               <div>
                 <h3>Check the chain, not our word.</h3>
-                <p>The <Link href="/proof" style={{ color: 'var(--brass)' }}>proof page</Link> reads the vault program’s own events on {CLUSTER}. Every bank links to its transaction and to the sell that caused it. Program: <a className="mono" href={solscan('account', VAULT_PROGRAM)} target="_blank" rel="noreferrer">{VAULT_PROGRAM.slice(0, 4)}…{VAULT_PROGRAM.slice(-4)}</a>.</p>
+                <p>The <Link href="/proof">proof page</Link> reads the vault program’s own events on {CLUSTER}. Every bank links to its transaction and to the sell that caused it. Program: <a className="mono" href={solscan('account', VAULT_PROGRAM)} target="_blank" rel="noreferrer">{VAULT_PROGRAM.slice(0, 4)}…{VAULT_PROGRAM.slice(-4)}</a>.</p>
               </div>
             </div>
             <div>

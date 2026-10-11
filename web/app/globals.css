@@ -1,95 +1,113 @@
+/* Kept's look: a white room and coloured glass. Near black type, one indigo that means "kept",
+   one word of each headline in an italic serif, and a staircase of glass tiles that only climbs. */
 :root {
-  --ink: #0e0f0c;
-  --raised: #171813;
-  --line: #2a2b24;
-  --bone: #f2ede4;
-  --dim: #9a978d;
-  --brass: #d6a94a;
-  --loss: #cb5b4a;
-  --ok: #7fb37a;
-  --display: var(--font-display), 'Iowan Old Style', Georgia, serif;
-  --mono: var(--font-mono), ui-monospace, 'SF Mono', Menlo, monospace;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --ink: #f4efe6;
-    --raised: #eae4d8;
-    --line: #d3ccbc;
-    --bone: #14150f;
-    --dim: #6b685e;
-    --brass: #8a6512;
-    --loss: #a63d2e;
-    --ok: #3f7a3a;
-  }
+  --ink: #f6f7f9;      /* the page */
+  --raised: #eceef3;   /* quiet fills */
+  --glass: #ffffff;    /* fields and floating surfaces */
+  --line: #e1e4eb;
+  --bone: #121217;     /* main text and the main button */
+  --dim: #6a6e7a;
+  --brass: #4a3ae8;    /* the one accent: what is kept */
+  --soft: #eae8ff;
+  --loss: #d8452f;
+  --ok: #18a46b;
+  --sans: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: var(--font-serif), "Iowan Old Style", Georgia, serif;
+  --mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 * { box-sizing: border-box; }
 html { background: var(--ink); color: var(--bone); -webkit-text-size-adjust: 100%; }
-body { margin: 0; font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--ink); }
+body { margin: 0; font: 17px/1.6 var(--sans); background: linear-gradient(#fff, var(--ink) 520px); letter-spacing: -0.005em; overflow-x: hidden; }
 a { color: inherit; }
-::selection { background: var(--brass); color: var(--ink); }
+::selection { background: var(--brass); color: #fff; }
 
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 .narrow { max-width: 720px; }
 
-.label { font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
-.mono { font-family: var(--mono); font-feature-settings: 'tnum'; }
+.label { font: 500 14px/1.3 var(--sans); color: var(--dim); }
+.mono { font-family: var(--sans); font-feature-settings: "tnum"; font-weight: 600; }
+.addr-text { font-family: var(--mono); font-weight: 400; }
 .dim { color: var(--dim); }
 .brass { color: var(--brass); }
 .loss { color: var(--loss); }
 
-h1, h2, h3 { font-family: var(--display); font-weight: 500; letter-spacing: -0.02em; margin: 0; }
-h1 { font-size: clamp(44px, 8.2vw, 104px); line-height: 0.98; letter-spacing: -0.035em; }
-h2 { font-size: clamp(30px, 4.4vw, 52px); line-height: 1.05; }
-h3 { font-size: 24px; line-height: 1.2; }
+h1, h2, h3 { font-family: var(--sans); font-weight: 600; margin: 0; }
+h1 { font-size: clamp(44px, 8vw, 100px); line-height: 1; letter-spacing: -0.045em; }
+h2 { font-size: clamp(30px, 4.4vw, 52px); line-height: 1.06; letter-spacing: -0.035em; }
+h3 { font-size: 22px; line-height: 1.25; letter-spacing: -0.02em; }
+/* the one word a headline leans on */
+h1 em, h2 em, h3 em, .lean { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--brass); letter-spacing: -0.01em; font-size: 1.1em; }
 
-.top { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; }
-.top nav { display: flex; gap: 28px; }
-.top nav a { text-decoration: none; font: 500 12px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
-.top nav a:hover { color: var(--bone); }
-.mark { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 600 15px/1 var(--display); letter-spacing: 0.02em; }
+.top { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+.top nav { display: flex; gap: 6px; background: var(--glass); border: 1px solid var(--line); border-radius: 999px; padding: 5px; box-shadow: 0 10px 30px rgba(18, 18, 23, 0.06); }
+.top nav a { text-decoration: none; font: 600 14px/1 var(--sans); color: var(--dim); padding: 10px 16px; border-radius: 999px; transition: background .2s, color .2s; }
+.top nav a:hover { color: var(--bone); background: var(--raised); }
+.mark { display: flex; align-items: center; gap: 8px; text-decoration: none; font: 600 22px/1 var(--sans); letter-spacing: -0.03em; }
 
 .rule { height: 1px; background: var(--line); border: 0; margin: 0; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-  height: 56px; padding: 0 28px; border-radius: 3px; border: 1px solid var(--brass);
-  background: var(--brass); color: var(--ink); font: 600 14px/1 system-ui, sans-serif; letter-spacing: 0.04em;
-  text-decoration: none; cursor: pointer;
+  height: 56px; padding: 0 28px; border-radius: 999px; border: 1px solid var(--bone);
+  background: var(--bone); color: #fff; font: 600 16px/1 var(--sans); letter-spacing: -0.01em;
+  text-decoration: none; cursor: pointer; box-shadow: 0 12px 26px rgba(18, 18, 23, 0.18);
+  transition: transform .15s ease, box-shadow .2s ease;
 }
-.btn:disabled { background: var(--line); border-color: var(--line); color: var(--dim); cursor: default; }
-.btn.ghost { background: transparent; color: var(--bone); border-color: var(--line); }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 16px 32px rgba(18, 18, 23, 0.22); }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { background: var(--raised); border-color: var(--raised); color: var(--dim); cursor: default; box-shadow: none; transform: none; }
+.btn.ghost { background: var(--glass); color: var(--bone); border-color: var(--line); box-shadow: none; }
 .btn.ghost:hover { border-color: var(--dim); }
 
 input.addr {
-  width: 100%; height: 56px; padding: 0 16px; border-radius: 3px; border: 1px solid var(--line);
-  background: transparent; color: var(--bone); font: 15px/1 var(--mono);
+  width: 100%; height: 56px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--glass); color: var(--bone); font: 15px/1 var(--mono);
 }
-input.addr:focus { outline: none; border-color: var(--brass); }
+input.addr::placeholder { font-family: var(--sans); color: var(--dim); font-size: 16px; }
+input.addr:focus { outline: none; border-color: var(--brass); box-shadow: 0 0 0 4px var(--soft); }
 
-.stat { display: flex; justify-content: space-between; gap: 24px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+.stat { display: flex; justify-content: space-between; gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--line); }
 .stat span:first-child { color: var(--dim); font-size: 15px; }
 .stat a { text-decoration: none; }
 .stat a:hover { color: var(--brass); }
 
-.big { font: 500 clamp(56px, 11vw, 132px)/0.95 var(--display); letter-spacing: -0.04em; }
+.big { font: 600 clamp(56px, 11vw, 132px)/0.95 var(--sans); letter-spacing: -0.055em; font-feature-settings: "tnum"; }
 
-/* the staircase: the kept line draws itself */
+/* the chart: the kept line draws itself */
 .stair { width: 100%; height: auto; display: block; overflow: visible; }
 .stair .kept { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.6s cubic-bezier(.2,.7,.2,1) forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { .stair .kept { animation: none; stroke-dashoffset: 0; } }
+
+/* the glass staircase: tiles fall into place one after another, then the light drifts across them */
+.ribbon { display: block; width: 100%; height: auto; overflow: visible; }
+.ribbon .tile { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: fall .9s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes fall { from { opacity: 0; transform: rotate(26deg) scaleY(.6); } to { opacity: 1; transform: none; } }
+.ribbon-wrap { animation: hue 14s linear infinite; }
+@keyframes hue { from { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(28deg); } to { filter: hue-rotate(0deg); } }
+.bleed { margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
 
 .steps { display: grid; gap: 0; counter-reset: s; }
 .steps > div { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 26px 0; border-top: 1px solid var(--line); }
-.steps > div::before { counter-increment: s; content: counter(s, decimal-leading-zero); font: 500 13px/1.9 var(--mono); color: var(--brass); }
+.steps > div::before { counter-increment: s; content: counter(s); font: 400 30px/1 var(--serif); font-style: italic; color: var(--brass); }
 .steps p { margin: 6px 0 0; color: var(--dim); }
+.steps a, a.link { color: var(--brass); text-decoration: none; font-weight: 600; }
 
-footer { padding: 56px 0 72px; color: var(--dim); font-size: 14px; }
+/* things rise into view as the page scrolls */
+@supports (animation-timeline: view()) {
+  .rise { animation: rise .8s cubic-bezier(.2,.7,.2,1) both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
 
+footer { padding: 56px 0 72px; color: var(--dim); font-size: 14px; display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--bone); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stair .kept, .ribbon .tile, .ribbon-wrap, .rise { animation: none; opacity: 1; stroke-dashoffset: 0; }
+}
 @media (max-width: 640px) {
-  .top nav { gap: 16px; }
   body { font-size: 16px; }
   .steps > div { grid-template-columns: 40px 1fr; }
+  .top nav a { padding: 9px 12px; }
 }

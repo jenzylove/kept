@@ -9,13 +9,13 @@ export default function Limits() {
       <div className="wrap">
         <header className="top">
           <Link className="mark" href="/"><Mark /> Kept</Link>
-          <nav><Link href="/proof">Proof</Link><Link href="/judges">Judges</Link></nav>
+          <nav><Link href="/proof">Proof</Link><Link href="/judges">Judges</Link><Link href="/limits">Plain terms</Link></nav>
         </header>
       </div>
       <main className="wrap" style={{ padding: '56px 24px 96px' }}>
         <div className="narrow">
           <div className="label" style={{ marginBottom: 20 }}>Plain terms</div>
-          <h1 style={{ fontSize: 'clamp(40px, 6.5vw, 76px)' }}>What Kept does, and what it does not.</h1>
+          <h1 style={{ fontSize: 'clamp(40px, 6.5vw, 76px)' }}>What Kept does, and what it <em>does not.</em></h1>
           <p className="dim" style={{ margin: '24px 0 40px' }}>
             Kept is a trading wallet that moves part of every winning sale into a vault you own. This page says exactly where that stops.
           </p>

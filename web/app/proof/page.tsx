@@ -28,32 +28,32 @@ export default async function Proof() {
       <div className="wrap">
         <header className="top">
           <Link className="mark" href="/"><Mark /> Kept</Link>
-          <nav><Link href="/proof">Proof</Link><Link href="/judges">Judges</Link></nav>
+          <nav><Link href="/proof">Proof</Link><Link href="/judges">Judges</Link><Link href="/limits">Plain terms</Link></nav>
         </header>
       </div>
       <main className="wrap" style={{ padding: '56px 24px 96px' }}>
-        <div className="label" style={{ marginBottom: 20 }}>Proof · {CLUSTER}</div>
-        <h1 style={{ fontSize: 'clamp(40px, 6.5vw, 76px)' }}>Every bank, read from the chain.</h1>
+        <div className="label" style={{ marginBottom: 20 }}>Proof, live from Solana {CLUSTER}</div>
+        <h1 style={{ fontSize: 'clamp(40px, 6.5vw, 76px)' }}>Every win kept, read from the <em>chain.</em></h1>
         <p className="dim" style={{ maxWidth: 640, margin: '24px 0 48px' }}>
-          This page reads the vault program’s own events. Nothing here is typed in by hand. Each row links to the bank on Solscan and to the sell that caused it.
+          This page reads the vault program’s own records. Nothing here is typed in by hand. Each row links to the transfer into the vault and to the sale that caused it.
         </p>
 
-        <div className="stat"><span>Program</span><a className="mono" href={solscan('account', VAULT_PROGRAM)} target="_blank" rel="noreferrer">{short(VAULT_PROGRAM)}</a></div>
+        <div className="stat"><span>Program</span><a className="addr-text" href={solscan('account', VAULT_PROGRAM)} target="_blank" rel="noreferrer">{short(VAULT_PROGRAM)}</a></div>
         <div className="stat"><span>Network</span><span className="mono">{CLUSTER}</span></div>
-        <div className="stat"><span>Banks shown</span><span className="mono">{banks.length}</span></div>
-        <div className="stat"><span>Banked across them</span><span className="mono brass">{sol(total)} SOL</span></div>
+        <div className="stat"><span>Wins shown</span><span className="mono">{banks.length}</span></div>
+        <div className="stat"><span>Kept across them</span><span className="mono brass">{sol(total)} SOL</span></div>
 
-        <div className="label" style={{ margin: '48px 0 6px' }}>Latest banks</div>
+        <div className="label" style={{ margin: '48px 0 6px' }}>Latest</div>
         {failed && <p className="loss">Could not read the chain right now. Try again in a moment.</p>}
-        {!failed && banks.length === 0 && <p className="dim">No banks yet on this network.</p>}
+        {!failed && banks.length === 0 && <p className="dim">Nothing kept yet on this network.</p>}
         {banks.map((b) => (
           <div className="stat" key={b.bankSignature} style={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
             <span className="mono" style={{ color: 'var(--bone)' }}>
               <span className="brass">+{sol(b.amountLamports)} SOL</span>
               <span className="dim"> from a win of {sol(b.profitLamports, 3)}</span>
             </span>
-            <span className="mono dim" style={{ fontSize: 14 }}>
-              {ago(b.time)} · <a href={solscan('tx', b.bankSignature)} target="_blank" rel="noreferrer">bank</a> · <a href={solscan('tx', b.sellSignature)} target="_blank" rel="noreferrer">sell</a> · vault {short(b.vault)}
+            <span className="dim" style={{ fontSize: 14 }}>
+              {ago(b.time)} · <a href={solscan('tx', b.bankSignature)} target="_blank" rel="noreferrer">kept</a> · <a href={solscan('tx', b.sellSignature)} target="_blank" rel="noreferrer">sale</a> · vault {short(b.vault)}
             </span>
           </div>
         ))}

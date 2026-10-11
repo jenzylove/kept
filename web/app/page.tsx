@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Mirror } from '@/components/Mirror';
 import { Mark } from '@/components/Mark';
+import { GlassStairs } from '@/components/GlassStairs';
+import { APK_URL } from '@/lib/config';
 
 export default function Home() {
   return (
@@ -11,51 +13,65 @@ export default function Home() {
           <nav>
             <Link href="/proof">Proof</Link>
             <Link href="/judges">Judges</Link>
+            <Link href="/limits">Plain terms</Link>
           </nav>
         </header>
       </div>
 
       <main>
-        <section className="wrap" style={{ padding: '56px 24px 88px' }}>
-          <div className="label" style={{ marginBottom: 28 }}>For Solana Seeker</div>
-          <h1>You won more<br />than you kept.</h1>
-          <p className="dim" style={{ fontSize: 20, maxWidth: 620, margin: '28px 0 56px' }}>
-            Kept is a trading wallet with a reflex. Each time you sell for a profit, part of the win moves into a vault that is slow to open.
-            Wins stop leaking back into the next trade.
+        <section className="wrap" style={{ padding: '56px 24px 0' }}>
+          <div className="label" style={{ marginBottom: 22 }}>A trading wallet for Solana Seeker and any Android phone</div>
+          <h1>You won more<br />than you <em>kept.</em></h1>
+          <p className="dim" style={{ fontSize: 20, maxWidth: 600, margin: '26px 0 34px' }}>
+            Kept is a trading wallet that saves part of every win for you. Each time you sell for more than you paid, a share of the profit moves into a vault that is slow to open.
           </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <a className="btn" href={APK_URL}>Get the app</a>
+            <a className="btn ghost" href="#mirror">See what you would have kept</a>
+          </div>
+        </section>
+
+        <div className="bleed" style={{ marginTop: -10 }}>
+          <GlassStairs lit={30} total={30} height={400} />
+        </div>
+
+        <section className="wrap" id="mirror" style={{ padding: '24px 24px 96px' }}>
           <div className="narrow">
-            <div className="label" style={{ marginBottom: 14 }}>Try it on any wallet. Yours, or one you are curious about.</div>
+            <h2>Try it on <em>any wallet.</em></h2>
+            <p className="dim" style={{ margin: '16px 0 26px' }}>
+              Paste a Solana wallet, yours or one you are curious about. Kept reads its real trades from the last 90 days and shows what it won, what it gave back, and what would be sitting in a vault today.
+            </p>
             <Mirror />
           </div>
         </section>
 
         <hr className="rule" />
 
-        <section className="wrap" style={{ padding: '88px 24px' }}>
-          <h2 style={{ maxWidth: 760 }}>Traders do not have a picking problem. They have a keeping problem.</h2>
+        <section className="wrap rise" style={{ padding: '96px 24px' }}>
+          <h2 style={{ maxWidth: 780 }}>Traders do not have a picking problem. They have a <em>keeping</em> problem.</h2>
           <div className="steps" style={{ marginTop: 56, maxWidth: 820 }}>
             <div>
               <div>
                 <h3>Trade the way you already do.</h3>
-                <p>Kept makes a trading wallet on your phone. Its key stays sealed by Android Keystore and never leaves unless you explicitly reveal it. Trade in Kept, or import the wallet into Phantom.</p>
+                <p>Kept makes a trading wallet on your phone. Its key is locked inside the phone and never leaves unless you choose to reveal it. Trade in Kept or in any other app.</p>
               </div>
             </div>
             <div>
               <div>
-                <h3>Sell above what you paid.</h3>
-                <p>Kept watches the wallet. When a sell lands above its cost, the phone signs a transfer on its own and sends your share of the profit to your vault. About two seconds. No tap.</p>
+                <h3>Sell for more than you paid.</h3>
+                <p>Kept watches the wallet. When a sale lands above what you paid, the phone sends your share of the profit to your vault by itself. It takes about two seconds and needs no tap.</p>
               </div>
             </div>
             <div>
               <div>
                 <h3>Getting it out takes a wait.</h3>
-                <p>Money goes in instantly. To take it out you ask, then wait the time you chose. You can cancel any time. Shortening the wait only works after the current wait is over, so a bad moment cannot talk you out of it.</p>
+                <p>Money goes in at once. To take it out you ask, then wait the time you chose. You can cancel while you wait. Shortening the wait only works after the current wait is over, so a weak moment cannot undo it.</p>
               </div>
             </div>
             <div>
               <div>
-                <h3>Every bank is a receipt.</h3>
-                <p>Each bank is an event on chain, tied to the sell that caused it. <Link href="/proof" style={{ color: 'var(--brass)' }}>Read them all on the proof page.</Link></p>
+                <h3>Every win kept is a receipt.</h3>
+                <p>Each one is recorded on Solana, tied to the sale that caused it. <Link href="/proof">Read them all on the proof page.</Link></p>
               </div>
             </div>
           </div>
@@ -63,31 +79,31 @@ export default function Home() {
 
         <hr className="rule" />
 
-        <section className="wrap" style={{ padding: '88px 24px' }}>
+        <section className="wrap rise" style={{ padding: '96px 24px' }}>
           <div className="narrow">
-            <div className="label" style={{ marginBottom: 18 }}>Built on Seeker</div>
-            <h2>Your vault belongs to your Seed Vault.</h2>
+            <div className="label" style={{ marginBottom: 16 }}>Built on Seeker</div>
+            <h2>Your vault belongs to your <em>Seed Vault.</em></h2>
             <p className="dim" style={{ marginTop: 20 }}>
-              The vault is owned by your main wallet. On a Seeker, a double tap on the Seed Vault confirms anything that moves your money out. The trading key is sealed by Android Keystore. Kept’s bank instruction can only pay your vault, and the program rejects any other destination.
+              The vault is owned by your own wallet. On a Seeker, a double tap on the Seed Vault confirms anything that moves your money out. The trading wallet on the phone can put money into your vault and nothing else. It can never take money out.
             </p>
-          </div>
-        </section>
-
-        <hr className="rule" />
-
-        <section className="wrap" style={{ padding: '88px 24px' }}>
-          <div className="narrow">
-            <div className="label" style={{ marginBottom: 18 }}>What Kept does not do</div>
-            <p className="dim" style={{ fontSize: 18 }}>
-              It does not stop you moving money out of the trading wallet by hand. That wallet is yours. The vault is the part that is protected.
-              It does not pick trades and it does not promise profit. A win is banked only when the wallet sells above what it paid, and coins with no known cost are never banked.
+            <p className="dim" style={{ marginTop: 14 }}>
+              Hold 100 SKR and you can choose your own share to keep, or have each win turned into staked SKR that earns while it waits.
             </p>
+            <p style={{ marginTop: 26 }}><Link className="link" href="/limits">What Kept does and does not do, in plain terms</Link></p>
           </div>
         </section>
       </main>
 
       <div className="wrap">
-        <footer>Built for the CLOCK IN Solana Mobile hackathon.</footer>
+        <hr className="rule" />
+        <footer>
+          <span>Built for the CLOCK IN Solana Mobile hackathon.</span>
+          <span style={{ display: 'flex', gap: 20 }}>
+            <a href="https://github.com/jenzylove/kept">Source</a>
+            <Link href="/proof">Proof</Link>
+            <Link href="/limits">Plain terms</Link>
+          </span>
+        </footer>
       </div>
     </>
   );

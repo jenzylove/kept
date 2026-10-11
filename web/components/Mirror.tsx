@@ -81,7 +81,7 @@ export function Mirror({ initial = '' }: { initial?: string }) {
         </button>
       </div>
       {state === 'running' && (
-        <p className="mono dim" style={{ fontSize: 14, marginTop: 14 }}>
+        <p className="dim" style={{ fontSize: 14, marginTop: 14 }}>
           {progress[0] ? `Read ${progress[0]} transactions so far…` : 'Finding trades…'}
         </p>
       )}
@@ -92,31 +92,31 @@ export function Mirror({ initial = '' }: { initial?: string }) {
           <div className="label">Last 90 days</div>
           {empty ? (
             <>
-              <h2 style={{ marginTop: 14 }}>No priced sells found.</h2>
-              <p className="dim">We read {result.scanned} transactions and found no sell with a known cost in this window.</p>
+              <h2 style={{ marginTop: 14 }}>No winning sells <em>found.</em></h2>
+              <p className="dim">We read {result.scanned} transactions and found no sale we could price in the last 90 days.</p>
             </>
           ) : (
             <>
-              <div className="big mono" style={{ marginTop: 14, fontFamily: 'var(--display)' }}>{sol(result.won)} SOL</div>
+              <div className="big" style={{ marginTop: 14 }}>{sol(result.won)} <span className="dim" style={{ fontSize: '0.28em', letterSpacing: 0 }}>SOL</span></div>
               <p className="dim" style={{ marginTop: 8 }}>won on {result.wins.length} winning {result.wins.length === 1 ? 'sell' : 'sells'}</p>
               <div style={{ margin: '32px 0 10px' }}><Staircase wallet={result.wallet} kept={result.keptSeries} /></div>
               <p className="label" style={{ display: 'flex', gap: 22 }}>
-                <span><i style={{ display: 'inline-block', width: 14, height: 3, background: 'var(--loss)', marginRight: 8, verticalAlign: 'middle' }} />Wallet profit</span>
-                <span><i style={{ display: 'inline-block', width: 14, height: 3, background: 'var(--brass)', marginRight: 8, verticalAlign: 'middle' }} />Kept at 50%</span>
+                <span><i style={{ display: 'inline-block', width: 14, height: 4, borderRadius: 4, background: 'var(--loss)', marginRight: 8, verticalAlign: 'middle' }} />What the wallet made</span>
+                <span><i style={{ display: 'inline-block', width: 14, height: 4, borderRadius: 4, background: 'var(--brass)', marginRight: 8, verticalAlign: 'middle' }} />Kept at 50%</span>
               </p>
               <div style={{ marginTop: 28 }}>
                 <div className="stat"><span>Gave back on {result.losses.length} losing {result.losses.length === 1 ? 'sell' : 'sells'}</span><span className="mono loss">−{sol(result.givenBack)} SOL</span></div>
                 <div className="stat"><span>In your vault, if Kept had been on</span><span className="mono brass">{sol(result.kept)} SOL</span></div>
-                {result.unpriced > 0 && <div className="stat"><span>Sells with no known cost (not counted)</span><span className="mono">{result.unpriced}</span></div>}
+                {result.unpriced > 0 && <div className="stat"><span>Sales we could not price (not counted)</span><span className="mono">{result.unpriced}</span></div>}
               </div>
               <p className="dim" style={{ fontSize: 14, marginTop: 14 }}>
-                Computed from this wallet’s real transactions over {result.scanned} reads. A plain sum: it ignores how banking would have changed your later trade sizes.
+                Computed from this wallet’s real transactions over {result.scanned} reads. A plain sum: it ignores how keeping part of each win would have changed your later trade sizes.
                 {result.truncated && ' History was longer than we read, so older trades are not counted.'}
               </p>
               <div className="label" style={{ margin: '28px 0 6px' }}>Biggest wins, with proof</div>
               {[...result.wins].sort((p, q) => (q.profit > p.profit ? 1 : -1)).slice(0, 5).map((w) => (
                 <div className="stat" key={w.sig}>
-                  <a className="mono" href={`https://solscan.io/tx/${w.sig}`} target="_blank" rel="noreferrer">{short(w.sig)}</a>
+                  <a className="addr-text" href={`https://solscan.io/tx/${w.sig}`} target="_blank" rel="noreferrer">{short(w.sig)}</a>
                   <span className="mono">+{sol(w.profit, 3)} SOL</span>
                 </div>
               ))}

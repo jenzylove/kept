@@ -21,8 +21,8 @@ export function Staircase({ wallet, kept, height = 180 }: { wallet: number[]; ke
   return (
     <svg className="stair" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Wallet profit over time against what was kept">
       <line x1="0" x2={W} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-      <path d={jag} fill="none" stroke="var(--loss)" strokeOpacity="0.85" strokeWidth="1.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      <path className="kept" pathLength={1} d={steps} fill="none" stroke="var(--brass)" strokeWidth="2.6" strokeLinejoin="miter" vectorEffect="non-scaling-stroke" />
+      <path d={jag} fill="none" stroke="var(--loss)" strokeOpacity="0.8" strokeWidth="1.8" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <path className="kept" pathLength={1} d={steps} fill="none" stroke="var(--brass)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
