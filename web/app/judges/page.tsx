@@ -42,7 +42,7 @@ export default function Judges() {
             <div>
               <div>
                 <h3>Install the app.</h3>
-                <p>Download the APK, or find Kept in the Solana dApp Store. Any Android phone works. A Seeker is not required. You need a Mobile Wallet Adapter wallet such as Phantom or Solflare for the wallet that owns your vault.</p>
+                <p>Download the APK. Any Android phone works. A Seeker is not required. You need a Mobile Wallet Adapter wallet such as Phantom or Solflare for the wallet that owns your vault.</p>
               </div>
             </div>
             <div>

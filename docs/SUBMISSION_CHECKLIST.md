@@ -1,15 +1,15 @@
 # CLOCK IN submission checklist
 
-Ticked only from the live app or the submitted form, never from intent.
+Ticked only from the live app or the submitted form, never from intent. Deadline: 2026-10-12 23:59 UTC.
 
 | Requirement | Proof | Done |
 |---|---|---|
-| Functional Android APK | | [ ] |
-| GitHub repo with source (public) | | [ ] |
-| Demo video showing the app in use | | [ ] |
-| Pitch deck or short presentation | | [ ] |
-| Mobile-first app for Seeker | | [ ] |
-| Mobile Wallet Adapter (recommended) | | [ ] |
-| Published to the Solana dApp Store (required to claim) | | [ ] |
-| SKR bonus: creative, meaningful SKR integration | | [ ] |
-| Submitted before 2026-10-09 06:59 UTC | | [ ] |
+| Functional Android APK | Signed release build 1.1.0, run on a Samsung Galaxy S22 Ultra on mainnet. Attached to a GitHub Release at submission | [ ] |
+| GitHub repo with source (public) | github.com/jenzylove/kept, made public at submission | [ ] |
+| Demo video showing the app in use | 81 seconds, built from real screen recordings and the live site | [ ] |
+| Pitch deck or short presentation | [kept-seeker.vercel.app/deck.pdf](https://kept-seeker.vercel.app/deck.pdf), 8 slides | [x] |
+| Mobile first app for Seeker | Native Android, Kotlin and Compose | [x] |
+| Mobile Wallet Adapter (recommended) | Connect, open vault and add SOL through Phantom on mainnet, 2026-10-11 | [x] |
+| SKR bonus: meaningful SKR integration | Holder tier and staked SKR in the vault's name. Tested against the real staking program in the simulator, not yet run on mainnet | [x] |
+| Published to the Solana dApp Store | Only needed to claim a prize | [ ] |
+| Submitted on Align before the deadline | | [ ] |
