@@ -55,6 +55,7 @@ import app.kept.trade.Token
 import app.kept.trade.Tokens
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** SOL the trading wallet keeps back so it can always pay for a sell and for banking the win. */
 private const val FEE_RESERVE = 8_000_000L
@@ -73,7 +74,11 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
 
     LaunchedEffect(Unit) { vm.loadHoldings() }
 
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
+    val scroll = rememberScrollState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // When a price arrives the button appears below it; bring it into view so nobody has to hunt for it.
+    val reveal: () -> Unit = { scope.launch { delay(120); scroll.animateScrollTo(scroll.maxValue) } }
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(scroll).padding(horizontal = ScreenPadding).padding(top = 18.dp, bottom = TabBarSpace)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Trade", style = MaterialTheme.typography.headlineMedium, color = c.text)
             Text(
@@ -105,8 +110,8 @@ fun TradeScreen(vm: AppViewModel, s: AppState) {
                 when {
                     shown == null && isBuy -> TokenSearch(vm) { token = it; amount = "" }
                     shown == null -> HoldingList(holdings) { token = it.token; amount = "" }
-                    isBuy -> BuyForm(vm, s, shown, amount, { amount = it }) { token = null; amount = ""; vm.clearMessage() }
-                    else -> SellForm(vm, s, shown, holdings?.firstOrNull { it.token.mint == shown.mint }, amount, { amount = it }) { token = null; amount = ""; vm.clearMessage() }
+                    isBuy -> BuyForm(vm, s, shown, amount, { amount = it }, reveal) { token = null; amount = ""; vm.clearMessage() }
+                    else -> SellForm(vm, s, shown, holdings?.firstOrNull { it.token.mint == shown.mint }, amount, { amount = it }, reveal) { token = null; amount = ""; vm.clearMessage() }
                 }
             }
         }
@@ -238,12 +243,13 @@ private fun Chosen(t: Token, onChange: () -> Unit) {
 }
 
 @Composable
-private fun BuyForm(vm: AppViewModel, s: AppState, t: Token, amount: String, onAmount: (String) -> Unit, onChange: () -> Unit) {
+private fun BuyForm(vm: AppViewModel, s: AppState, t: Token, amount: String, onAmount: (String) -> Unit, reveal: () -> Unit, onChange: () -> Unit) {
     val c = Kept.colors
     val spendable = (s.tradingLamports - FEE_RESERVE).coerceAtLeast(0)
     val lamports = solInputToLamports(amount)
     val tooMuch = lamports != null && lamports > spendable
     val q = rememberQuote(vm, Jupiter.SOL, t.mint, lamports.takeIf { !tooMuch })
+    LaunchedEffect(q.quote != null) { if (q.quote != null) reveal() }
 
     Chosen(t, onChange)
     Label("Spend")
@@ -270,7 +276,7 @@ private fun BuyForm(vm: AppViewModel, s: AppState, t: Token, amount: String, onA
 }
 
 @Composable
-private fun SellForm(vm: AppViewModel, s: AppState, t: Token, held: AppViewModel.Held?, amount: String, onAmount: (String) -> Unit, onChange: () -> Unit) {
+private fun SellForm(vm: AppViewModel, s: AppState, t: Token, held: AppViewModel.Held?, amount: String, onAmount: (String) -> Unit, reveal: () -> Unit, onChange: () -> Unit) {
     val c = Kept.colors
     val raw = held?.raw ?: 0L
     val all = rawToInput(raw, t.decimals)
@@ -279,6 +285,7 @@ private fun SellForm(vm: AppViewModel, s: AppState, t: Token, held: AppViewModel
     val tooMuch = typed != null && typed > raw
     val rawIn = typed?.takeIf { it in 1..raw }
     val q = rememberQuote(vm, t.mint, Jupiter.SOL, rawIn)
+    LaunchedEffect(q.quote != null) { if (q.quote != null) reveal() }
 
     Chosen(t, onChange)
     Label("Sell")
