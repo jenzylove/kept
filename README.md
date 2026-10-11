@@ -10,7 +10,7 @@
   <a href="https://kept-seeker.vercel.app"><img alt="Site" src="https://img.shields.io/badge/site-kept--seeker.vercel.app-4a3ae8?style=flat-square&labelColor=121217"></a>
   <img alt="Solana mainnet" src="https://img.shields.io/badge/solana-live%20on%20mainnet-4a3ae8?style=flat-square&labelColor=121217">
   <img alt="Android" src="https://img.shields.io/badge/android-8.0%20and%20up-4a3ae8?style=flat-square&labelColor=121217">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-123%20app%20%C2%B7%2027%20program%20%C2%B7%205%20site-18a46b?style=flat-square&labelColor=121217">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-128%20app%20%C2%B7%2027%20program%20%C2%B7%205%20site-18a46b?style=flat-square&labelColor=121217">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-6a6e7a?style=flat-square&labelColor=121217">
 </p>
 
@@ -28,7 +28,7 @@ Each time your trading wallet sells a token for more than you paid, your phone m
 
 | | |
 |---|---|
-| Try it on any wallet, in a browser | [kept-seeker.vercel.app](https://kept-seeker.vercel.app) |
+| Check any wallet, in a browser | [kept-seeker.vercel.app](https://kept-seeker.vercel.app) |
 | See every win kept, read from the chain | [/proof](https://kept-seeker.vercel.app/proof) |
 | A five minute tour for judges, no keys needed | [/judges](https://kept-seeker.vercel.app/judges) |
 | What Kept does and does not do | [/limits](https://kept-seeker.vercel.app/limits) |
@@ -41,7 +41,18 @@ Each time your trading wallet sells a token for more than you paid, your phone m
 
 Most memecoin traders lose money: 62.5% of pump.fun traders lost, and about 3% made more than $1,000 ([crypto.news](https://crypto.news/over-60-pump-fun-traders-saw-losses-less-than-0-01-made-over-1m/), [Cryptopolitan](https://www.cryptopolitan.com/3-percent-traders-on-pump-fun-made-over-1000/)). Plenty of those traders also have wins. They give them back. The few who stay profitable move profit out of the trading wallet on a schedule ([WalletFinder](https://www.walletfinder.ai/blog/solana-meme-coin-season-wallet-analysis)). Take profit orders do not help: they turn a coin into SOL, and the SOL sits in the same wallet and funds the next buy.
 
-Paste any wallet into the Mirror on the site to see its own numbers. On one busy public wallet, over 90 days: 123 winning sales worth 12.77 SOL, and 28.05 SOL given back on losing ones. Half of those wins, kept, would have been 6.38 SOL sitting in a vault.
+## Check a wallet before you follow it
+
+The Mirror is the front door, in the app and on the site. Paste any Solana wallet, a caller, a dev, a friend or your own, and Kept reads its real trades and says in plain numbers:
+
+- how many of its sales won, and what it made or lost overall
+- how much of its winnings it gave back on losing sales
+- what a typical win and a typical loss look like, and its biggest single loss
+- how many sales could not be priced, so you know how far to trust the read
+
+It ends in one of four plain lines, such as "Wins, and keeps most of it" or "Wins, then gives it all back". The line is chosen by two rules (is it ahead overall, and does it give back more than 35% of what it wins), not by a score. One busy wallet read this way won 149 of 416 sales and lost 11.58 SOL overall. Another won 80 of 111 and made 24.61.
+
+In the app, the check looks back 30 days. Holding 100 SKR looks back 90 days and keeps a list of wallets you watch.
 
 ## How it works
 
@@ -67,7 +78,7 @@ Swaps are routed by Jupiter. Their service is treated as untrusted: every transa
 ## SKR
 
 - **Keep wins as staked SKR.** Your share of a win is swapped to SKR and staked with Solana Mobile's staking program in the vault's name. Only the Kept program, after the vault's wait, can unstake it. Kept only ever stakes the SKR it just bought, never SKR you hold yourself.
-- **The holder tier.** Hold 100 SKR in your own wallet to choose your share of each win and to keep wins as staked SKR. Without it the share is 50%, kept as SOL.
+- **The holder tier.** Hold 100 SKR in your own wallet to choose your share of each win, keep wins as staked SKR, look back 90 days in the wallet check, and keep a watch list. Without it the share is 50%, kept as SOL, and the check looks back 30 days.
 
 ## What is proven, and what is not
 
