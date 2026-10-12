@@ -448,8 +448,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // the usual reason a swap is turned down. So it is priced again now, and once more if the first
         // try is turned down.
         suspend fun attempt(): Pair<String, app.kept.chain.Rpc.Landing> {
-            val fresh = jupiter.quote(quote.inMint, quote.outMint, quote.inAmount)
-            val tx = jupiter.signedSwap(fresh, key)
+            var fresh = jupiter.quote(quote.inMint, quote.outMint, quote.inAmount)
+            var tx = jupiter.signedSwap(fresh, key)
+            // Still too big for one transaction: ask for a shorter route.
+            if (java.util.Base64.getDecoder().decode(tx).size > 1232) {
+                fresh = jupiter.quote(quote.inMint, quote.outMint, quote.inAmount, maxAccounts = 24)
+                tx = jupiter.signedSwap(fresh, key)
+            }
             rpc.simulateSigned(tx)
             return rpc.sendUntilLanded(tx)
         }

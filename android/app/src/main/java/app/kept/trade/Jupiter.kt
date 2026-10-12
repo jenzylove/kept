@@ -18,7 +18,7 @@ import org.sol4k.Keypair
 
 /** What the app needs from a swap provider. [Jupiter] implements it; tests use a fake. */
 interface SwapSource {
-    suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int = 300): Jupiter.Quote
+    suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int = 300, maxAccounts: Int = 40): Jupiter.Quote
     suspend fun signedSwap(quote: Jupiter.Quote, trader: Keypair): String
 }
 
@@ -28,8 +28,11 @@ class Jupiter(private val client: OkHttpClient = app.kept.chain.Net.client()) : 
 
     data class Quote(val raw: JsonObject, val inMint: String, val outMint: String, val inAmount: Long, val outAmount: Long, val priceImpactPct: String?)
 
-    override suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int): Quote = withContext(Dispatchers.IO) {
-        val url = "$BASE/quote?inputMint=$inMint&outputMint=$outMint&amount=$amount&slippageBps=$slippageBps"
+    override suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int, maxAccounts: Int): Quote = withContext(Dispatchers.IO) {
+        // A route through many pools can make a transaction over Solana's size limit (1,232 bytes),
+        // which the network refuses outright. Capping the accounts keeps it inside, for a tiny price
+        // difference: measured on SKR to SOL, 1,234 bytes uncapped, 1,046 at 40, 754 at 28.
+        val url = "$BASE/quote?inputMint=$inMint&outputMint=$outMint&amount=$amount&slippageBps=$slippageBps&maxAccounts=$maxAccounts"
         val body = get(url)
         val o = json.parseToJsonElement(body).jsonObject
         if (o["error"] != null) error(o["error"]!!.jsonPrimitive.content)

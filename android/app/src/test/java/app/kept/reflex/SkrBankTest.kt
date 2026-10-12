@@ -23,7 +23,7 @@ const val FAKE_SWAP_TX = "c3dhcA=="
 
 /** A swap source that quotes a fixed SKR output and "signs" a marker transaction. */
 internal class FakeSwap(val outAmount: Long, val reject: SwapRejected? = null) : SwapSource {
-    override suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int) =
+    override suspend fun quote(inMint: String, outMint: String, amount: Long, slippageBps: Int, maxAccounts: Int) =
         Jupiter.Quote(JsonObject(emptyMap()), inMint, outMint, amount, outAmount, null)
 
     override suspend fun signedSwap(quote: Jupiter.Quote, trader: Keypair): String {
