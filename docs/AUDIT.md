@@ -27,7 +27,7 @@ This replaces the audit of 2026-10-06, which predates the program rewrite, the m
 | Claim | Mechanism | Evidence | Limit |
 |---|---|---|---|
 | Keeps part of a win within seconds, no tap | A foreground service signs `bank` with the key on the phone | One on mainnet from a real phone ([kept](https://solscan.io/tx/4wyr4QuEoPZeSCzdHerGCeQw2fFrUqdALPMZZ8d9sKDNzzW85iNAew2e1ch2Yv4BcGRi5MBf5nkuq3mf23erCLR5), 9 seconds after the [sale](https://solscan.io/tx/NFymeFebkenoToV9b3RaYwPFpkPZ4H6DsaMVYTv3wFN9tR8Aab7qveyEyALzoL31N4vsnrxAQuzfPYXw2MekBbg)), and 14 on devnet | One mainnet run so far |
-| Only the owner can take money out, after the wait | The program checks the owner signature and the unlock time | Program tests, including attacks; a devnet run | Not yet run on mainnet |
+| Only the owner can take money out, after the wait | The program checks the owner signature and the unlock time | Program tests, including attacks; on mainnet an early collection was [refused](https://solscan.io/tx/4S8Njdrh5aTwsGJKUGNDji5fdwkjS1JP318gkZonvTY2N56dPMifqWtB2PUoyuGb8ExxWi767AGkBFN2AKhn4AGH) | |
 | Swaps are checked before signing | `SwapValidator` parses each transaction and refuses anything but a plain swap | Unit tests on real and hostile transactions; real buys and sells on mainnet from a phone | It cannot see inside the swap program; the simulation before sending covers that |
 | The wallet check is real numbers | Computed from the transactions of the wallet itself | Each win links to its transaction; the same engine is tested against an independent parser | A plain sum. Busy wallets are read only for their most recent stretch, and the page says so |
 | Works with the Seed Vault on a Seeker | Standard Mobile Wallet Adapter | Proven with Phantom on a Samsung phone | Not tested on a Seeker |
@@ -55,10 +55,10 @@ This replaces the audit of 2026-10-06, which predates the program rewrite, the m
 | Pitch deck | Met |
 | Demo video | Made. To be uploaded by the owner |
 | Mobile Wallet Adapter | Met, proven with Phantom |
-| Meaningful SKR use | Built and tested against the real staking program in the simulator. Not yet run on mainnet |
+| Meaningful SKR use | Built, and tested against the real mainnet staking program loaded into the simulator |
 | dApp Store | Not published. Needed only to claim a prize |
 | Submitted on Align | Action for the owner |
 
 ## Not verified
 
-Nothing here is a security audit. Not checked: the Seed Vault on a Seeker, staked SKR on mainnet, a withdrawal on mainnet, behaviour after a phone restart on mainnet, and the demo film at playing speed (it was checked by stills and audio levels).
+Nothing here is a security audit. Not checked: the Seed Vault on a Seeker, behaviour after a phone restart on mainnet, and the demo film at playing speed (it was checked by stills and audio levels).

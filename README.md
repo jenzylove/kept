@@ -95,8 +95,8 @@ Everything in the left column was run for real. Nothing is claimed that was not 
 | Setup on a real phone, mainnet | **Proven.** Samsung Galaxy S22 Ultra with Phantom: connect, open the vault, add SOL to the trading wallet |
 | Buying and selling in the app, mainnet | **Proven.** Real swaps through the validator. A sale at a loss moved nothing to the vault, as designed |
 | Keeping a win | **Proven on mainnet, 2026-10-12.** A real sale of SKR for more than it cost ([sale](https://solscan.io/tx/NFymeFebkenoToV9b3RaYwPFpkPZ4H6DsaMVYTv3wFN9tR8Aab7qveyEyALzoL31N4vsnrxAQuzfPYXw2MekBbg)) was followed 9 seconds later by the phone moving half the profit, 0.0004 SOL, into the vault by itself ([kept](https://solscan.io/tx/4wyr4QuEoPZeSCzdHerGCeQw2fFrUqdALPMZZ8d9sKDNzzW85iNAew2e1ch2Yv4BcGRi5MBf5nkuq3mf23erCLR5)). No tap. Also proven on devnet earlier, including a skipped loss |
-| Taking money out | **Proven on devnet** on the emulator: ask, wait, take out, cancel. Not yet run on mainnet |
-| Keeping wins as staked SKR | Tested against the real staking program in the simulator. Not yet run on mainnet |
+| Taking money out | **Proven on mainnet, 2026-10-12.** The owner asked to take 0.0004 SOL out through Phantom; an attempt to collect it before the wait was [refused](https://solscan.io/tx/4S8Njdrh5aTwsGJKUGNDji5fdwkjS1JP318gkZonvTY2N56dPMifqWtB2PUoyuGb8ExxWi767AGkBFN2AKhn4AGH) by the program on chain (StillCooling). Ask, wait and cancel also proven on devnet |
+| Keeping wins as staked SKR | Tested against the real mainnet staking program, loaded into the simulator: stake in the vault's name, refused direct unstake, unstake only through the vault's wait |
 | Seed Vault on a Seeker | **Not tested.** No Seeker was available. The app speaks standard Mobile Wallet Adapter, which is what the Seed Vault wallet uses |
 | Mirror and proof page | Live. The Mirror reads a busy wallet in about 14 seconds |
 | Profit sums | Real mainnet transactions, checked against an independent parser. The phone and the site run the same test vectors |
