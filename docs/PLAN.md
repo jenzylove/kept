@@ -86,8 +86,8 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 | 7.4 | Demo video | made, 97 seconds | [x] |
 | 7.5 | Pitch deck | [deck.pdf](https://kept-seeker.vercel.app/deck.pdf) | [x] |
 | 7.6 | Repo public, metadata, license | public 2026-10-11, MIT | [x] |
-| 7.7 | `docs/SUBMISSION_CHECKLIST.md` all ticked from live app | file | [ ] |
-| 7.8 | Submitted on the CLOCK IN portal | confirmation screenshot | [ ] |
+| 7.7 | `docs/SUBMISSION_CHECKLIST.md` all ticked from live app | [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md); the dApp Store item is open and only needed to claim | [x] |
+| 7.8 | Submitted on the CLOCK IN portal | submitted 2026-10-12, before the deadline | [x] |
 
 ## Risks
 
