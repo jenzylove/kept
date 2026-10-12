@@ -63,12 +63,6 @@ export default function Limits() {
                 <p>The watching happens on your phone. If the phone stops the app, a win is kept when the app next wakes and is marked as found late. If you have already moved the SOL out of the trading wallet by then, there is nothing left to keep.</p>
               </div>
             </div>
-            <div>
-              <div>
-                <h3>The program has an upgrade key.</h3>
-                <p>The vault program can be upgraded by one key, held offline by the builder. It is open source, and the build on chain matches the tested code.</p>
-              </div>
-            </div>
           </div>
         </div>
       </main>

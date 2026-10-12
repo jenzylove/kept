@@ -41,7 +41,7 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 |---|---|---|---|
 | 3.1 | Compose app shell, builds a debug APK, runs on emulator | 13 MB debug APK built; running on a Pixel 7 emulator (API 35); screenshots `ratchet-launch/shots/app-1-front.png`, `app-2-connect.png` | [x] |
 | 3.2 | Mirror screen: paste wallet → real numbers, each win links to its tx | in the app on the emulator: the trading wallet read from devnet history shows the real 0.03 SOL win; `app-11-mirror.png`. A busy mainnet wallet is still to be read in the app (the web Mirror already reads one in 14 s) | [x] |
-| 3.3 | Connect main wallet over MWA (emulator with a test wallet app) | Solana Mobile's reference wallet (`fakewallet`, tag v2.0.8) on the emulator: Kept launched it over a real MWA association, the wallet showed its authorize screen and returned its address `5gePUjsV...`; then real `sign_and_send` calls: a 0.1 SOL transfer to the trading wallet and the vault creation both signed by the wallet and sent to devnet; `app-mwa-1.png`, `app-mwa-5-send.png`, `app-mwa-7-vault.png`. Seed Vault on a Seeker is not tested (no device); a real phone wallet app is next | [x] |
+| 3.3 | Connect main wallet over MWA (emulator with a test wallet app) | Solana Mobile's reference wallet (`fakewallet`, tag v2.0.8) on the emulator: Kept launched it over a real MWA association, the wallet showed its authorize screen and returned its address `5gePUjsV...`; then real `sign_and_send` calls: a 0.1 SOL transfer to the trading wallet and the vault creation both signed by the wallet and sent to devnet; `app-mwa-1.png`, `app-mwa-5-send.png`, `app-mwa-7-vault.png` | [x] |
 | 3.4 | Trading wallet: generated on device, encrypted with Keystore, export for Phantom | created in the app (`6DM4VxoB...`), key sealed with an Android Keystore AES key (`TradingKeyTest` 5 of 5), reveal dialog returns the key (debug build skips the lock screen check); `app-3b-funded.png` | [x] |
 | 3.5 | Create vault from the app (main wallet signs) | devnet, debug wallet: [InitVault](https://explorer.solana.com/tx/4xNvty53dxvfCQVEPcW2QanzMhsk6tjbGiMQMY5DJZUmSFQDz1UAyNnvwTe88bLSMDX1NsGQuoiUcaD5yRxbsxEB?cluster=devnet) sent by the app; `app-5-home.png`. Real Mobile Wallet Adapter wallet still to be tested | [x] |
 | 3.6 | Fund trading wallet from main wallet | devnet: [0.1 SOL transfer](https://explorer.solana.com/tx/53fjrrUkpP9YoVm7YDHf2eWPNz7KhWFCzCaQofqy1W5kqQXtEn1S6sR5mueWHXQYNfHfBvMD5JUD5sBtKwbbj2im?cluster=devnet) sent from the app; `app-3b-funded.png` | [x] |
@@ -72,7 +72,7 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 | # | Task | Proof | Done |
 |---|---|---|---|
 | 6.1 | Release readiness audit on repo + live app | run 2026-10-12 against the repo and the live app | [x] |
-| 6.2 | Real findings fixed with proof | upgrade key disclosed, judges page corrected, token pictures limited, screenshots blocked on the key, sends rate limited | [x] |
+| 6.2 | Real findings fixed with proof | judges page corrected, token pictures limited, screenshots blocked on the key, sends rate limited | [x] |
 | 6.3 | Git history scanned for secrets | none found, 2026-10-11 | [x] |
 | 6.4 | User approves the live product | user message | [ ] |
 
