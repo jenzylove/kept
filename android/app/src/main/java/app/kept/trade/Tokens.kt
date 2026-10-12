@@ -71,11 +71,14 @@ class Tokens(private val client: OkHttpClient = app.kept.chain.Net.client()) {
                     decimals = decimals,
                     usdPrice = o["usdPrice"]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0 && it.isFinite() },
                     verified = o["isVerified"]?.jsonPrimitive?.booleanOrNull == true,
-                    // Pictures are only ever loaded over https.
-                    icon = o["icon"]?.jsonPrimitive?.contentOrNull?.takeIf { it.startsWith("https://") && it.length < 400 },
+                    // A picture is loaded from wherever the token's maker hosts it, which tells that host a phone
+                    // looked. So only verified tokens get one, and only over https.
+                    icon = o["icon"]?.jsonPrimitive?.contentOrNull?.takeIf { verifiedFlag(o) && it.startsWith("https://") && it.length < 400 },
                 )
             }.sortedByDescending { it.verified }
         }
+
+        private fun verifiedFlag(o: JsonObject) = o["isVerified"]?.jsonPrimitive?.booleanOrNull == true
 
         private fun clean(s: String?, max: Int) = s.orEmpty().filter { !it.isISOControl() }.trim().take(max)
 

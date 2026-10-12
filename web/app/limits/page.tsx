@@ -65,6 +65,12 @@ export default function Limits() {
             </div>
             <div>
               <div>
+                <h3>The program can still be changed by its maker.</h3>
+                <p>Kept is days old, so the vault program has not been frozen yet. One key, held by the builder, can replace it. That is a trust you are placing in the builder until the program is frozen, and it is the main reason to keep amounts small for now.</p>
+              </div>
+            </div>
+            <div>
+              <div>
                 <h3>It is new software.</h3>
                 <p>The vault program is open source and tested, but it has not had an outside audit. Use amounts you can afford to have at risk.</p>
               </div>

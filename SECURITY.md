@@ -12,6 +12,10 @@
 
 The reflex signs with the trading key without asking. The program accepts a `bank` instruction only from that key and it can only move SOL into the vault. It cannot withdraw, change rules, or send money anywhere else. The key can also move the money in the trading wallet, because that wallet is the user's own.
 
+## Who can change the program
+
+The vault program on mainnet is upgradeable. Its upgrade authority is one key held by the builder (`EzB5Svn5CmdafRdT3m7ugDe9ck2gKoaMkEcjp4gV2dFy`), kept offline and outside this repository. Whoever holds that key could replace the program, including with one that moves vault funds. This is the largest trust assumption in Kept today. The plan is to freeze the program (remove the authority) once it has had an outside review; until then, treat vault balances as trusting the builder, and keep them small.
+
 ## What the server can do
 
 The site holds an RPC key and nothing else. It forwards an allowlist of read and send methods and cannot sign anything. It never sees a key.

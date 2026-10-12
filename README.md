@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" width="76" alt="Kept">
+  <img src="docs/media/brand/mark.svg" width="76" alt="Kept">
 </p>
 
 <h1 align="center">Kept</h1>
@@ -7,19 +7,15 @@
 <p align="center"><b>You won more than you kept.</b><br>A trading wallet that saves part of every win. Built for Solana Seeker, works on any Android phone.</p>
 
 <p align="center">
-  <a href="https://kept-seeker.vercel.app"><img alt="Site" src="https://img.shields.io/badge/site-kept--seeker.vercel.app-4a3ae8?style=flat-square&labelColor=121217"></a>
-  <img alt="Solana mainnet" src="https://img.shields.io/badge/solana-live%20on%20mainnet-4a3ae8?style=flat-square&labelColor=121217">
-  <img alt="Android" src="https://img.shields.io/badge/android-8.0%20and%20up-4a3ae8?style=flat-square&labelColor=121217">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-128%20app%20%C2%B7%2027%20program%20%C2%B7%205%20site-18a46b?style=flat-square&labelColor=121217">
+  <a href="https://kept-seeker.vercel.app"><img alt="Live site" src="https://img.shields.io/badge/live-kept--seeker.vercel.app-4a3ae8?style=flat-square&labelColor=121217"></a>
+  <a href="https://solscan.io/account/EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK"><img alt="Program on Solana mainnet" src="https://img.shields.io/badge/program-live%20on%20mainnet-4a3ae8?style=flat-square&labelColor=121217"></a>
+  <a href="https://github.com/jenzylove/kept/actions/workflows/ci.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/jenzylove/kept/ci.yml?branch=main&style=flat-square&label=tests&labelColor=121217"></a>
+  <img alt="Built for CLOCK IN" src="https://img.shields.io/badge/built%20for-CLOCK%20IN%20%C2%B7%20Solana%20Mobile-18a46b?style=flat-square&labelColor=121217">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-6a6e7a?style=flat-square&labelColor=121217">
 </p>
 
 <p align="center">
-  <img src="docs/assets/app-vault.png" width="250" alt="The vault screen: three wins kept, three glass steps lit">
-  &nbsp;
-  <img src="docs/assets/app-trade.png" width="250" alt="The trade screen with token search">
-  &nbsp;
-  <img src="docs/assets/app-sell.png" width="250" alt="The sell screen showing the sum behind what goes to the vault">
+  <a href="https://kept-seeker.vercel.app"><img src="docs/media/hero.png" alt="Kept: you won more than you kept" width="100%"></a>
 </p>
 
 Each time your trading wallet sells a token for more than you paid, your phone moves a share of the profit into a vault, by itself, in about two seconds. Money goes into the vault at once. Taking it out means asking, then waiting a time you chose. Wins stop leaking back into the next trade.
@@ -29,13 +25,22 @@ Each time your trading wallet sells a token for more than you paid, your phone m
 | | |
 |---|---|
 | Check any wallet, in a browser | [kept-seeker.vercel.app](https://kept-seeker.vercel.app) |
+| Get the app (Android) | [kept.apk](https://github.com/jenzylove/kept/releases/latest/download/kept.apk) |
 | See every win kept, read from the chain | [/proof](https://kept-seeker.vercel.app/proof) |
-| A five minute tour for judges, no keys needed | [/judges](https://kept-seeker.vercel.app/judges) |
+| A five minute tour for judges | [/judges](https://kept-seeker.vercel.app/judges) |
+| The pitch deck | [deck.pdf](https://kept-seeker.vercel.app/deck.pdf) |
 | What Kept does and does not do | [/limits](https://kept-seeker.vercel.app/limits) |
 | The vault program on mainnet | [`EWSuJmQA...hyFGK`](https://solscan.io/account/EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK) |
-| The product requirements | [docs/PRD.md](docs/PRD.md) |
-| The build plan, ticked only with proof | [docs/PLAN.md](docs/PLAN.md) |
-| The build log, including what broke | [docs/BUILD_LOG.md](docs/BUILD_LOG.md) |
+| The release audit | [docs/AUDIT.md](docs/AUDIT.md) |
+| Evidence: plan ticked with proof, build log, spikes | [docs/](docs/) |
+
+<p align="center">
+  <img src="docs/media/app-vault.png" width="250" alt="The vault screen: three wins kept, three glass steps lit">
+  &nbsp;
+  <img src="docs/media/app-trade.png" width="250" alt="The trade screen with token search">
+  &nbsp;
+  <img src="docs/media/app-sell.png" width="250" alt="The sell screen showing the sum behind what goes to the vault">
+</p>
 
 ## The problem
 
@@ -132,6 +137,7 @@ The plain language version is on the site at [/limits](https://kept-seeker.verce
 - **The watcher runs while the phone is on and the app is allowed to run.** If it was stopped, it catches up from the wallet's history when it wakes and marks those as found late.
 - **Each request to your wallet app starts with its connect screen.** A wallet app that has just been opened turns down a remembered login, so Kept asks fresh every time. It costs one extra tap and it always works.
 - **Mirror numbers are a plain sum.** The kept figure ignores how keeping part of each win would have changed your later trade sizes.
+- **The program is not frozen yet.** It is upgradeable by one key the builder holds offline, which is a trust in the builder until it is frozen. See [SECURITY.md](SECURITY.md).
 - **New software.** The program is open source and tested, and has had no outside audit.
 - **Cut from the first plan:** rules per token and several trading wallets for SKR holders. They were never needed to prove the core claim.
 

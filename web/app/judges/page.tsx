@@ -29,14 +29,14 @@ export default function Judges() {
           <div className="steps">
             <div>
               <div>
-                <h3>See the problem in your own numbers.</h3>
-                <p>Open the <Link href="/">front page</Link>, paste any Solana wallet, press Read. You get what it won, what it gave back, and what would be in a vault if every win had been banked. Each win links to its transaction.</p>
+                <h3>Check a wallet, yours or anyone’s.</h3>
+                <p>Open the <Link href="/">front page</Link>, paste any Solana wallet, press Read. You get how many of its sales won, what it made overall, how much it gave back, and what would be in a vault with Kept on. Each win links to its transaction.</p>
               </div>
             </div>
             <div>
               <div>
                 <h3>Check the chain, not our word.</h3>
-                <p>The <Link href="/proof">proof page</Link> reads the vault program’s own records on mainnet and on the test network. Every bank links to its transaction and to the sell that caused it. Program: <a className="mono" href={`https://solscan.io/account/${VAULT_PROGRAM}`} target="_blank" rel="noreferrer">{VAULT_PROGRAM.slice(0, 4)}…{VAULT_PROGRAM.slice(-4)}</a>.</p>
+                <p>The <Link href="/proof">proof page</Link> reads the vault program’s own records on mainnet and on the test network. Every win kept links to its transaction and to the sale that caused it. Program: <a className="mono" href={`https://solscan.io/account/${VAULT_PROGRAM}`} target="_blank" rel="noreferrer">{VAULT_PROGRAM.slice(0, 4)}…{VAULT_PROGRAM.slice(-4)}</a>.</p>
               </div>
             </div>
             <div>
@@ -48,13 +48,13 @@ export default function Judges() {
             <div>
               <div>
                 <h3>Open a vault and watch it work.</h3>
-                <p>Connect your wallet, let Kept make the trading wallet, pick your share and your wait, open the vault. Fund the trading wallet with a few cents, buy a token from the Trade tab, and sell it above what you paid. A receipt appears within seconds, with the transaction as proof.</p>
+                <p>Connect your wallet, let Kept make the trading wallet, pick your share and your wait, open the vault. Fund the trading wallet with a few cents and buy a token from the Trade tab. This is real money on mainnet, so keep it small. When you later sell for more than you paid, a receipt appears within seconds, with the transaction as proof. That needs the price to rise, so it may not happen inside five minutes. The proof page shows runs where it did.</p>
               </div>
             </div>
             <div>
               <div>
-                <h3>Try to get the money out early.</h3>
-                <p>Ask to take money out. The app shows a countdown. Cancel it, or wait. The program refuses an early withdrawal with a clear error, and a shorter wait only applies after the current one ends.</p>
+                <h3>Getting money out takes a wait.</h3>
+                <p>Once something is in the vault, ask to take it out. The app shows a countdown. Cancel it, or wait. The program refuses an early withdrawal, and a shorter wait only applies after the current one ends.</p>
               </div>
             </div>
           </div>
