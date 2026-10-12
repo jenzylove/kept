@@ -447,16 +447,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // The price on screen may be a minute old by the time the button is pressed, and a stale price is
         // the usual reason a swap is turned down. So it is priced again now, and once more if the first
         // try is turned down.
+        // The best priced route is not always one the chain will run: seen on mainnet, a route through a
+        // pool its operator had switched off ("Pool disabled"), and a three pool route over the size
+        // limit. So routes are tried from best price to simplest, each simulated first, and the first
+        // one the chain accepts is sent. A failed simulation costs nothing.
         suspend fun attempt(): Pair<String, app.kept.chain.Rpc.Landing> {
-            var fresh = jupiter.quote(quote.inMint, quote.outMint, quote.inAmount)
-            var tx = jupiter.signedSwap(fresh, key)
-            // Still too big for one transaction: ask for a shorter route.
-            if (java.util.Base64.getDecoder().decode(tx).size > 1232) {
-                fresh = jupiter.quote(quote.inMint, quote.outMint, quote.inAmount, maxAccounts = 24)
-                tx = jupiter.signedSwap(fresh, key)
+            var refused: app.kept.chain.RpcException? = null
+            for ((maxAccounts, direct) in listOf(40 to false, 24 to false, 20 to true)) {
+                val fresh = runCatching { jupiter.quote(quote.inMint, quote.outMint, quote.inAmount, maxAccounts = maxAccounts, direct = direct) }.getOrNull() ?: continue
+                val tx = jupiter.signedSwap(fresh, key)
+                if (java.util.Base64.getDecoder().decode(tx).size > 1232) continue
+                try {
+                    rpc.simulateSigned(tx)
+                } catch (e: app.kept.chain.RpcException) {
+                    if (e.code != -3) throw e
+                    refused = e
+                    continue
+                }
+                return rpc.sendUntilLanded(tx)
             }
-            rpc.simulateSigned(tx)
-            return rpc.sendUntilLanded(tx)
+            throw refused ?: app.kept.chain.RpcException(-3, "No route could be built for this trade")
         }
         fun turnedDown(e: app.kept.chain.RpcException) = e.code == -2 || e.code == -3
         val (sig, landing) = try {
