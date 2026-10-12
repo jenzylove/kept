@@ -40,7 +40,11 @@ This replaces the audit of 2026-10-06, which predates the program rewrite, the m
 
 **Medium: token pictures were loaded from whoever made the token.** Searching a token made the phone fetch a picture from an address the maker of the token chose, which tells that host a phone looked. *Fixed:* pictures load only for verified tokens.
 
-**Low, open:** the reveal key dialog can be captured by a screenshot. The RPC proxy is open to anyone, limited only by a rate per caller. There was no automated test run on push; one has been added for the engine, the site and the app.
+**Low: the reveal key dialog could be captured by a screenshot.** *Fixed:* while the key is on screen the phone refuses screenshots and screen recording.
+
+**Low: the RPC proxy could be used by anyone to send transactions at the read rate.** *Fixed:* sending and simulating now cost far more of a caller's allowance, about 30 a minute. The proxy is still public, because the app has to reach it.
+
+**Low: no automated test run on push.** *Fixed:* one runs for the engine, the site and the app.
 
 ## Requirements
 

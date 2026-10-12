@@ -26,6 +26,7 @@ const ALLOW = new Set([
   'getMinimumBalanceForRentExemption',
 ]);
 
+const HEAVY = new Set(['sendTransaction', 'simulateTransaction']);
 const MAX_BATCH = 20;
 const MAX_BODY = 200_000; // sendTransaction is the biggest legitimate body (a few KB)
 
@@ -47,6 +48,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: { code: 403, message: `Method not allowed: ${String(m)}` } }, { status: 403 });
     }
   }
+
+  // Sending and simulating are the calls worth abusing, so each one costs far more of a caller's allowance:
+  // about 30 a minute, against 240 a minute for reads.
+  const heavy = batch.filter((r) => HEAVY.has((r as { method: string }).method)).length;
+  if (heavy && !allowed(clientIp(req), RATE_PER_MIN, heavy * 7)) return NextResponse.json({ error: { code: 429, message: 'Slow down' } }, { status: 429 });
 
   const cluster = req.nextUrl.searchParams.get('c') === 'mainnet' ? 'mainnet' : 'devnet';
   const upstream = await fetch(rpcUrl(cluster), { method: 'POST', headers: { 'content-type': 'application/json' }, body: text });

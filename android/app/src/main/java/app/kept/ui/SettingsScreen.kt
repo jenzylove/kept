@@ -158,7 +158,14 @@ fun SettingsScreen(vm: AppViewModel, s: AppState, onExport: (onKey: (String) -> 
     }
 
     exported?.let { key ->
+        // While the key is on screen, the phone refuses screenshots and screen recording of this window.
+        androidx.compose.runtime.DisposableEffect(Unit) {
+            val window = (ctx as? android.app.Activity)?.window
+            window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            onDispose { window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
+        }
         AlertDialog(
+            properties = androidx.compose.ui.window.DialogProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn),
             onDismissRequest = { exported = null },
             containerColor = androidx.compose.ui.graphics.Color.White,
             title = { Text("Trading wallet key", color = c.text) },
