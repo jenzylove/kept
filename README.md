@@ -25,6 +25,7 @@ Each time your trading wallet sells a token for more than you paid, your phone m
 | | |
 |---|---|
 | Check any wallet, in a browser | [kept-seeker.vercel.app](https://kept-seeker.vercel.app) |
+| Watch the demo (2 minutes, recorded on mainnet) | [youtu.be/eCHMCyh528U](https://youtu.be/eCHMCyh528U) |
 | Get the app (Android) | [kept.apk](https://github.com/jenzylove/kept/releases/latest/download/kept.apk) |
 | See every win kept, read from the chain | [/proof](https://kept-seeker.vercel.app/proof) |
 | A five minute tour for judges | [/judges](https://kept-seeker.vercel.app/judges) |
