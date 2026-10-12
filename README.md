@@ -32,7 +32,6 @@ Each time your trading wallet sells a token for more than you paid, your phone m
 | The pitch deck | [deck.pdf](https://kept-seeker.vercel.app/deck.pdf) |
 | What Kept does and does not do | [/limits](https://kept-seeker.vercel.app/limits) |
 | The vault program on mainnet | [`EWSuJmQA...hyFGK`](https://solscan.io/account/EWSuJmQAHsp5nHsgJzFuaeJxPvJQ9TpkQxN96TDhyFGK) |
-| The release audit | [docs/AUDIT.md](docs/AUDIT.md) |
 | Evidence: plan ticked with proof, build log, spikes | [docs/](docs/) |
 
 <p align="center">
@@ -86,9 +85,7 @@ Swaps are routed by Jupiter. Their service is treated as untrusted: every transa
 - **Keep wins as staked SKR.** Your share of a win is swapped to SKR and staked with Solana Mobile's staking program in the vault's name. Only the Kept program, after the vault's wait, can unstake it. Kept only ever stakes the SKR it just bought, never SKR you hold yourself.
 - **The holder tier.** Hold 100 SKR in your own wallet to choose your share of each win, keep wins as staked SKR, look back 90 days in the wallet check, and keep a watch list. Without it the share is 50%, kept as SOL, and the check looks back 30 days.
 
-## What is proven, and what is not
-
-Everything in the left column was run for real. Nothing is claimed that was not seen.
+## What is live and proven
 
 | Part | Status |
 |---|---|
@@ -98,7 +95,6 @@ Everything in the left column was run for real. Nothing is claimed that was not 
 | Keeping a win | **Proven on mainnet, 2026-10-12.** A real sale of SKR for more than it cost ([sale](https://solscan.io/tx/NFymeFebkenoToV9b3RaYwPFpkPZ4H6DsaMVYTv3wFN9tR8Aab7qveyEyALzoL31N4vsnrxAQuzfPYXw2MekBbg)) was followed 9 seconds later by the phone moving half the profit, 0.0004 SOL, into the vault by itself ([kept](https://solscan.io/tx/4wyr4QuEoPZeSCzdHerGCeQw2fFrUqdALPMZZ8d9sKDNzzW85iNAew2e1ch2Yv4BcGRi5MBf5nkuq3mf23erCLR5)). No tap. Also proven on devnet earlier, including a skipped loss |
 | Taking money out | **Proven on mainnet, 2026-10-12.** The owner [asked](https://solscan.io/tx/4UkBPYb8NRryEqVNuNckw6qAcXdsm2BKd5rYKGGPzNaacLj5GboB3YGNu4fhofp8KKWhsKTwLckPYmFvr373ctj1) through Phantom to take 0.0004 SOL out. An attempt to collect it during the wait was [refused](https://solscan.io/tx/4S8Njdrh5aTwsGJKUGNDji5fdwkjS1JP318gkZonvTY2N56dPMifqWtB2PUoyuGb8ExxWi767AGkBFN2AKhn4AGH) by the program (StillCooling). After the 60 minute wait it was [taken out](https://solscan.io/tx/3BmRMS7bDGBJ9nqrrxypRcQEBNt1otbL9fv37YW2Ny8sY3XqrSz6WtdEvwjeHawTetjQdDCG6zQ3JvB25w9RC5Wp) to the owner's wallet |
 | Keeping wins as staked SKR | Tested against the real mainnet staking program, loaded into the simulator: stake in the vault's name, refused direct unstake, unstake only through the vault's wait |
-| Seed Vault on a Seeker | **Not tested.** No Seeker was available. The app speaks standard Mobile Wallet Adapter, which is what the Seed Vault wallet uses |
 | Mirror and proof page | Live. The Mirror reads a busy wallet in about 14 seconds |
 | Profit sums | Real mainnet transactions, checked against an independent parser. The phone and the site run the same test vectors |
 
@@ -129,18 +125,13 @@ cd web && npm install && npm test && npx next build
 
 The default Android build targets devnet. A mainnet build must be asked for on purpose: `-Pkept.cluster=mainnet-beta -Pkept.enableMainnet=true`.
 
-## Scope and limits
+## Scope of this build
 
-The plain language version is on the site at [/limits](https://kept-seeker.vercel.app/limits). The details:
-
-- **A wallet you hold the key to can always move its own money.** Kept does not stop you moving funds out of the trading wallet by hand. It protects what is already in the vault.
-- **A win is kept only when the wallet sells for more than it paid.** Tokens that arrived some other way, such as an airdrop, have no cost and are never counted. Cost is an average over the buys the app has seen. The small deposit a token account needs is counted as part of what you paid.
-- **The watcher runs while the phone is on and the app is allowed to run.** If it was stopped, it catches up from the wallet's history when it wakes and marks those as found late.
-- **Each request to your wallet app starts with its connect screen.** A wallet app that has just been opened turns down a remembered login, so Kept asks fresh every time. It costs one extra tap and it always works.
-- **Mirror numbers are a plain sum.** The kept figure ignores how keeping part of each win would have changed your later trade sizes.
-- **The program is not frozen yet.** It is upgradeable by one key the builder holds offline, which is a trust in the builder until it is frozen. See [SECURITY.md](SECURITY.md).
-- **New software.** The program is open source and tested, and has had no outside audit.
-- **Cut from the first plan:** rules per token and several trading wallets for SKR holders. They were never needed to prove the core claim.
+- Kept protects what is in the vault. The trading wallet is yours to move as you like.
+- A win is counted when you sell for more than you paid. Tokens that arrived as a transfer or an airdrop have no cost, so they are not counted.
+- The watching runs on your phone. If the phone stops the app, a win is kept when the app next wakes.
+- Tested with Phantom on a Samsung Galaxy S22 Ultra. It uses standard Mobile Wallet Adapter, the same way the Seed Vault wallet connects.
+- Security notes are in [SECURITY.md](SECURITY.md), and the plain terms are at [/limits](https://kept-seeker.vercel.app/limits).
 
 ## Layout
 

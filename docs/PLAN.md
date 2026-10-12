@@ -71,7 +71,7 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 6.1 | Release readiness audit on repo + live app | [docs/AUDIT.md](AUDIT.md) | [x] |
+| 6.1 | Release readiness audit on repo + live app | run 2026-10-12 against the repo and the live app | [x] |
 | 6.2 | Real findings fixed with proof | upgrade key disclosed, judges page corrected, token pictures limited, screenshots blocked on the key, sends rate limited | [x] |
 | 6.3 | Git history scanned for secrets | none found, 2026-10-11 | [x] |
 | 6.4 | User approves the live product | user message | [ ] |

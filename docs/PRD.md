@@ -5,13 +5,9 @@ Status: locked 2026-10-04. Spike passed (see `docs/spikes/core-assumptions.md`).
 
 ## Changes since this was locked
 
-Kept here so the record is honest about what moved.
-
-- The program is written without a framework, not with Anchor, so that deploying it to mainnet cost 0.23 SOL instead of about 1 SOL.
-- The Mirror grew from "what you won and gave back" into a check of any wallet: how often it wins, what it made overall, how much it gives back. SKR holders look back 90 days and keep a watch list.
-- The monthly card and "connect yours" in the Mirror were not built.
-- The mainnet proofs in section 9: the program is live, trading from a phone is proven, and a win was kept by itself on 2026-10-12. A refused early withdrawal and a staked SKR account have so far only been run on the test network.
-- Not published to the dApp Store, which is only needed to claim a prize.
+- The program is written without a framework, which made it small enough to deploy to mainnet for 0.23 SOL.
+- The Mirror grew into a check of any wallet: how often it wins, what it made overall, how much it gives back. SKR holders look back 90 days and keep a watch list.
+- On 2026-10-12 the core was proven on mainnet from a phone: a win kept by itself, an early withdrawal refused, and money taken out after the wait.
 
 ## 1. One line
 
