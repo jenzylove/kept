@@ -10,7 +10,7 @@ Kept here so the record is honest about what moved.
 - The program is written without a framework, not with Anchor, so that deploying it to mainnet cost 0.23 SOL instead of about 1 SOL.
 - The Mirror grew from "what you won and gave back" into a check of any wallet: how often it wins, what it made overall, how much it gives back. SKR holders look back 90 days and keep a watch list.
 - The monthly card and "connect yours" in the Mirror were not built.
-- The mainnet proofs in section 9 are not all in place: the program is live and trading from a phone is proven on mainnet, but a kept win, a refused early withdrawal and a staked SKR account have so far only been run on the test network.
+- The mainnet proofs in section 9: the program is live, trading from a phone is proven, and a win was kept by itself on 2026-10-12. A refused early withdrawal and a staked SKR account have so far only been run on the test network.
 - Not published to the dApp Store, which is only needed to claim a prize.
 
 ## 1. One line

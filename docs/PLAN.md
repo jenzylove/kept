@@ -47,7 +47,7 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 | 3.6 | Fund trading wallet from main wallet | devnet: [0.1 SOL transfer](https://explorer.solana.com/tx/53fjrrUkpP9YoVm7YDHf2eWPNz7KhWFCzCaQofqy1W5kqQXtEn1S6sR5mueWHXQYNfHfBvMD5JUD5sBtKwbbj2im?cluster=devnet) sent from the app; `app-3b-funded.png` | [x] |
 | 3.7 | Reflex foreground service: detects sell, banks profit share, local notification | devnet, emulator: real [buy](https://explorer.solana.com/tx/2ZaRzSeMH8ff9zHcp3vC9CiD3mmjQc6B5zxTmjcTDgZdnxMkXn3Z69FgQ7BzrtwuXhkhGLWvK2jfsc82m4yTkivf?cluster=devnet) then profitable [sell](https://explorer.solana.com/tx/2RBcok8YSjjy4w3ShwXZB7ntpaz4x5nm6cM6ZLrJLyJjCh3KvQ9rY5czSPCkb5nwF4fu5snbeQvPdxmcJAoNvZZj?cluster=devnet) on the trading wallet; the app banked 0.015 SOL (50% of 0.03 profit) with no tap: [bank](https://explorer.solana.com/tx/51c68eGZZkARzo2vDJjaFg3EKYHbHNV2a71D1ge5VVT4kibEGvi3sBuaXVB75e2o3xcU1WdpEzdT8bfh4nkm4ADn?cluster=devnet) landed 11 slots (about 2 s) after the sell; receipt `app-6-banked.png`. To repeat on mainnet in phase 7 | [x] |
 | 3.8 | Catch-up after restart: missed sells banked and labelled late | test + log | [ ] |
-| 3.9 | In-app swap (Jupiter) | buy + sell tx links from the app | [ ] |
+| 3.9 | In-app swap (Jupiter) | mainnet from the phone: buys and sells landed; every transaction checked by `SwapValidator` before signing | [x] |
 | 3.10 | Vault screen: balance, bank history, withdraw request, countdown, cancel | on the emulator, devnet: vault 0.0165 SOL after the bank; request 0.005 SOL, countdown (`app-8-pending.png`), unlock, take out (vault 0.0115, `app-10-withdrawn.png`); a second request cancelled in the app | [x] |
 | 3.11 | SKR tier: live SKR balance check, rules unlocked; bank into staked SKR | stake tx where user = vault PDA | [ ] |
 | 3.12 | Monthly card (share image) | drawn in the app from the real vault and trading history, opened through the share sheet; `docs/assets/kept-card.png` (0.070 SOL won, 0.035 SOL kept, 2 wins, devnet) | [x] |
@@ -58,34 +58,34 @@ Deadline: **2026-10-12 23:59 UTC** (extended from Oct 9). Target: submit by 2026
 |---|---|---|---|
 | 4.1 | Next.js site on Vercel, web Mirror | https://kept-seeker.vercel.app/ : a real busy wallet read in 14.3 s (123 wins, 12.77 SOL won, 28.05 SOL given back); screenshot `ratchet-launch/shots/web-mirror-dark.png` | [x] |
 | 4.2 | `/proof`: live `Banked` events from the program | https://kept-seeker.vercel.app/proof shows the real devnet bank (0.05 SOL); decoder tested against that event (`web/test/decode.test.mjs`). Switches to mainnet with `KEPT_CLUSTER` after the mainnet deploy | [x] |
-| 4.3 | APK download + judge fast path | live URL | [ ] |
+| 4.3 | APK download + judge fast path | [release v1.1.0](https://github.com/jenzylove/kept/releases/tag/v1.1.0) and [/judges](https://kept-seeker.vercel.app/judges) | [x] |
 
 ## Phase 5. Design (Oct 7)
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 5.1 | Own visual identity, applied to app and web | screenshots dark + light, shown to user | [ ] |
-| 5.2 | User approves look | user message | [ ] |
+| 5.1 | Own visual identity, applied to app and web | white page, glass staircase, Geist with an italic serif word, three tile mark; app and site | [x] |
+| 5.2 | User approves look | approved 2026-10-11 | [x] |
 
 ## Phase 6. Audit and approval (Oct 7 to 8)
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 6.1 | Release readiness audit on repo + live app | `docs/AUDIT.md` | [ ] |
-| 6.2 | Real findings fixed with proof | per-finding test or tx | [ ] |
-| 6.3 | Git history scanned for secrets | scan output | [ ] |
+| 6.1 | Release readiness audit on repo + live app | [docs/AUDIT.md](AUDIT.md) | [x] |
+| 6.2 | Real findings fixed with proof | upgrade key disclosed, judges page corrected, token pictures limited, screenshots blocked on the key, sends rate limited | [x] |
+| 6.3 | Git history scanned for secrets | none found, 2026-10-11 | [x] |
 | 6.4 | User approves the live product | user message | [ ] |
 
 ## Phase 7. Ship (Oct 8)
 
 | # | Task | Proof | Done |
 |---|---|---|---|
-| 7.1 | Signed release APK | file + sha256 | [ ] |
+| 7.1 | Signed release APK | signed with the release key, certificate SHA-256 `1495a439…ebc2` | [x] |
 | 7.2 | Published to Solana dApp Store (submitted) | portal screenshot | [ ] |
-| 7.3 | README (fast path, real vs not, proof links, scope and limits) | repo | [ ] |
-| 7.4 | Demo video | file + link | [ ] |
-| 7.5 | Pitch deck | link | [ ] |
-| 7.6 | Repo public, metadata, license | URL | [ ] |
+| 7.3 | README (fast path, real vs not, proof links, scope and limits) | [README](../README.md) | [x] |
+| 7.4 | Demo video | made, 97 seconds | [x] |
+| 7.5 | Pitch deck | [deck.pdf](https://kept-seeker.vercel.app/deck.pdf) | [x] |
+| 7.6 | Repo public, metadata, license | public 2026-10-11, MIT | [x] |
 | 7.7 | `docs/SUBMISSION_CHECKLIST.md` all ticked from live app | file | [ ] |
 | 7.8 | Submitted on the CLOCK IN portal | confirmation screenshot | [ ] |
 

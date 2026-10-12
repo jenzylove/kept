@@ -74,7 +74,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** The trading wallet's own history, for the staircase on the home screen. */
     private val _home = MutableStateFlow<MirrorLoader.Result?>(null)
     val homeMirror: StateFlow<MirrorLoader.Result?> = _home.asStateFlow()
-    private var homeLogSize = -1
+    private var homeLogKey = ""
 
     /** Set by the activity once it can build a wallet (Mobile Wallet Adapter needs the activity). */
     var wallet: MainWallet? = null
@@ -101,9 +101,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val log = kept.reflexStore.load().log
         _state.update { it.copy(nowSec = System.currentTimeMillis() / 1000, log = log) }
         ticks++
-        if (log.size != homeLogSize) {
+        // A bank is written as pending first and confirmed seconds later, so the count alone misses it.
+        val logKey = log.joinToString(",") { it.sellSignature + it.status }
+        if (logKey != homeLogKey) {
             // a bank just landed: refresh the vault total and the chart right away
-            homeLogSize = log.size
+            homeLogKey = logKey
+            loadHoldings()
             loadHomeMirror()
             refresh()
         } else if (ticks % 6 == 0) {
